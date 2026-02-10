@@ -1,9 +1,6 @@
 import network
 import time
-
-# --- Ayarlar ---
-SSID = "internet_adi"
-PASSWORD = "internet_sifresi"
+from config import SSID, PASSWORD
 
 def wifi_baglan():
     wlan = network.WLAN(network.STA_IF)
