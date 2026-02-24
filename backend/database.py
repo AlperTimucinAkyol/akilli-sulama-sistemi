@@ -1,27 +1,27 @@
-import psycopg2
-from psycopg2 import pool
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from config import DB_CONFIG
 
-# Global bir pool değişkeni tanımlıyoruz
-connection_pool = None
+# connection string oluştur
+SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@" \
+                          f"{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['dbname']}"
 
-def init_db():
-    global connection_pool
-    print("Veritabanı bağlantı havuzu oluşturuluyor...")
-    connection_pool = psycopg2.pool.SimpleConnectionPool(
-        1,      
-        20,     
-        **DB_CONFIG
-    )
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_size=20,      # bağlantı havuzu boyutu
+    max_overflow=0,
+)
 
-def close_db():
-    global connection_pool
-    if connection_pool:
-        connection_pool.closeall()
-        print("Tüm veritabanı bağlantıları kapatıldı.")
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def get_db_connection():
-    return connection_pool.getconn()
 
-def release_db_connection(conn):
-    connection_pool.putconn(conn)
+class Base(DeclarativeBase):
+    pass
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

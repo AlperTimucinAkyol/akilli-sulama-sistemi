@@ -1,64 +1,73 @@
 import paho.mqtt.client as mqtt
 import json
 import threading
-from config import MQTT_BROKER, MQTT_PORT, TOPIC_COMMAND, TOPIC_SENSOR
-from decision import decision_logic
-from database import get_connection
+from datetime import datetime
+from config import MQTT_BROKER, MQTT_PORT, TOPIC_SENSOR
+from database import SessionLocal
+import models
 
-# --- MQTT OLAYLARI ---
 def on_connect(client, userdata, flags, rc):
-    print(f"MQTT Broker'a bağlandı! Sonuç kodu: {rc}")
+    print(f"MQTT: Broker'a bağlandı! Kod: {rc}")
     client.subscribe(TOPIC_SENSOR)
 
 def on_message(client, userdata, msg):
+    db = SessionLocal()
     try:
         payload = json.loads(msg.payload.decode())
-        device_id = payload.get("device_id")
-        temp = payload.get("temperature")
-        hum = payload.get("humidity")
+        lora_id = payload.get("lora_id")
+        moisture_value = payload.get("value")
         
-        print(f"Veri geldi -> Cihaz: {device_id}, Sıcaklık: {temp}, Nem: %{hum}")
+        print(f"Veri Geldi -> Node: {lora_id}, Nem: %{moisture_value}")
 
-        conn = get_connection()
-        cur = conn.cursor()
+        if lora_id and moisture_value is not None:
+            node = db.query(models.Node).filter(models.Node.lora_id == lora_id).first()
+            
+            if not node:
+                print(f"Hata: {lora_id} ID'li cihaz veritabanında kayıtlı değil!")
+                return
 
-        cur.execute("""
-            SELECT d.decision FROM decisions d
-            JOIN measurements m ON d.measurement_id = m.id
-            WHERE m.device_id = %s ORDER BY d.created_at DESC LIMIT 1
-        """, (device_id,))
+            # Bu cihaza bağlı sensörü bul
+            sensor = db.query(models.Sensor).filter(
+                models.Sensor.node_id == node.id,
+                models.Sensor.sensor_type == "Soil Moisture"
+            ).first()
 
-        row = cur.fetchone()
-        last_state = row[0] if row else False
+            if not sensor:
+                print(f"Bilgi: {lora_id} için 'Soil Moisture' sensörü bulunamadı. Oluşturuluyor...")
+                sensor = models.Sensor(node_id=node.id, sensor_type="Soil Moisture", created_at=datetime.now())
+                db.add(sensor)
+                db.commit()
+                db.refresh(sensor)
 
-        new_state = decision_logic(hum, last_state)
-        reason = "durum degismedi" if new_state == last_state else "nem esigi asildi"
-
-        cur.execute("INSERT INTO measurements (device_id, temperature, humidity) VALUES (%s, %s, %s) RETURNING id",
-                    (device_id, temp, hum))
-        m_id = cur.fetchone()[0]
-
-        cur.execute("INSERT INTO decisions (measurement_id, decision, reason) VALUES (%s, %s, %s)",
-                    (m_id, new_state, reason))
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        response_data = {"watering": new_state, "reason": reason}
-        client.publish(TOPIC_COMMAND, json.dumps(response_data))
-        print(f"Komut gönderildi: {new_state}")
+            new_data = models.SensorData(
+                sensor_id=sensor.id,
+                value=float(moisture_value),
+                timestamp=datetime.now()
+            )
+            db.add(new_data)
+            
+            # 5. Node'un 'last_seen' bilgisini güncelle
+            node.last_seen = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            db.commit()
+            print(f"Veritabanına kaydedildi. Sensor ID: {sensor.id}")
 
     except Exception as e:
-        print(f"Hata oluştu: {e}")
-
+        print(f"MQTT Veri İşleme Hatası: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 def start_mqtt():
     mqtt_client = mqtt.Client()
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    mqtt_client.loop_forever()
+    
+    try:
+        mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        mqtt_client.loop_forever()
+    except Exception as e:
+        print(f"MQTT Connection Error: {e}")
 
 def start_mqtt_thread():
     threading.Thread(target=start_mqtt, daemon=True).start()
