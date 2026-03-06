@@ -6,12 +6,12 @@ class WeatherService:
     BASE_URL = "https://api.openweathermap.org/data/2.5/forecast"
 
     @classmethod
-    async def fetch_weather_data(cls):
+    async def fetch_weather_data(cls, location: str):
         """
         OpenWeather API'den hava durumu verilerini çeker ve Pydantic modeline dönüştürür.
         """
         params = {
-            "q": "Istanbul",
+            "q": location, # önceki "Istanbul"
             "appid": WEATHER_API_KEY,
             "units": "metric", 
             "cnt": 8           # Önümüzdeki 24 saati verir
@@ -37,11 +37,11 @@ class WeatherService:
                 return None
 
     @classmethod
-    async def get_irrigation_summary(cls):
+    async def get_irrigation_summary(cls, location: str):
         """
         Karar mekanizması (decision.py) için sadeleştirilmiş veriyi döner.
         """
-        data = await cls.fetch_weather_data()
+        data = await cls.fetch_weather_data(location)
         if data:
             return data.get_next_forecast()
         return None
