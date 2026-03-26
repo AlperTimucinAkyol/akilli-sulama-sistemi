@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/home.css') }}" />
+{% endblock %}
+
+{% block content %}
+<section class="welcome-hero">
+    <div class="hero-overlay"></div> 
+    <div class="hero-content container">
+        <span class="badge rounded-pill bg-success mb-3 px-3 py-2">YENİ NESİL TARIM</span>
+        <h1 class="display-3 fw-bold mb-3">Akıllı Sulama ile<br /><span class="text-success-light">Tarlanıza Can Verin</span></h1>
+        <p class="lead mb-5 opacity-90">Toprak nemi ve hava durumuna göre otomatik,<br />tasarruflu ve uzaktan sulama çözümleri.</p>
+
+        <div class="d-flex flex-column flex-sm-row justify-content-center gap-3 mb-5">
+            <a href="/login" class="btn btn-success btn-lg shadow-sm px-5 py-3">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Hemen Başla
+            </a>
+
+            <a href="/about" class="btn btn-blur btn-lg px-5 py-3">
+                Sistemi Tanı
+            </a>
+        </div>
+
+        <div class="row features mt-5 mb-5 g-4">
+            <div class="col-6 col-md-4">
+                <div class="feature-card">
+                    <i class="bi bi-broadcast text-success"></i>
+                    <h5>LoRa Teknolojisi</h5>
+                    <p>Kilometrelerce menzil</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-4">
+                <div class="feature-card">
+                    <i class="bi bi-droplet-half text-success"></i>
+                    <h5>%40 Tasarruf</h5>
+                    <p>Akıllı su yönetimi</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="feature-card">
+                    <i class="bi bi-phone text-success"></i>
+                    <h5>Mobil Kontrol</h5>
+                    <p>Her yerden erişim</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

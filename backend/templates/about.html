@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/home.css') }}" />
+{% endblock %}
+
+{% block content %}
+<section class="welcome-hero py-5">
+    <div class="hero-overlay"></div> 
+    <div class="container hero-content text-white">
+        <h2 class="text-center mb-5 fw-bold">Sistem Nasıl Çalışır?</h2>
+        
+        <div class="row g-4 text-center">
+            <div class="col-md-4">
+                <div class="feature-card p-4">
+                    <i class="bi bi-bar-chart-fill text-success-light"></i>
+                    <h4 class="mt-3">Veri Toplama</h4>
+                    <small class="text-white-50 d-block mb-2">Toprağın nabzını tutuyoruz</small>
+                    <p class="text-white-50 small">Toprak nem sensörü ve anlık hava durumu API entegrasyonu ile veri takibi.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="feature-card p-4">
+                    <i class="bi bi-cpu text-success-light"></i>
+                    <h4 class="mt-3">Akıllı Karar</h4>
+                    <small class="text-white-50 d-block mb-2">AgroLog Algoritması</small>
+                    <p class="text-white-50 small">Makine öğrenmesi destekli algoritmalarımız verileri analiz edip en doğru sulama zamanını belirler.</p>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="feature-card p-4">
+                    <i class="bi bi-droplet-fill text-success-light"></i>
+                    <h4 class="mt-3">Aksiyon</h4>
+                    <small class="text-white-50 d-block mb-2">Verimli Kaynak Kullanımı</small>
+                    <p class="text-white-50 small">Karara göre röleler tetiklenir ve sulama başlar. Su israfı %0'a indirilir.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-top border-secondary">
+            <div class="row align-items-center">
+                <div class="col-lg-4 text-start">
+                    <h3 class="text-success-light fw-bold">Neden AgroLog?</h3>
+                    <p class="text-white-50">Geleneksel yöntemleri modern teknolojiyle harmanlayarak tarımda verimliliği en üst seviyeye çıkarıyoruz.</p>
+                </div>
+                <div class="col-lg-8">
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            <div class="p-3 border-start border-success border-3 bg-white bg-opacity-10 rounded-end">
+                                <h2 class="fw-bold mb-0">%40</h2>
+                                <small class="text-white-50">Su Tasarrufu</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-3 border-start border-info border-3 bg-white bg-opacity-10 rounded-end">
+                                <h2 class="fw-bold mb-0">7/24</h2>
+                                <small class="text-white-50">Anlık Takip</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-3 border-start border-warning border-3 bg-white bg-opacity-10 rounded-end">
+                                <h2 class="fw-bold mb-0">Sıfır</h2>
+                                <small class="text-white-50">Veri Kaybı</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+     </div>
+</section>
+{% endblock %}

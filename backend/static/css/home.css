@@ -1,0 +1,135 @@
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --text-success-light: #4ade80;
+    --navbar-height: 56px; /* Navbar yüksekliğini buradan tek seferde değiştirebilirsin */
+}
+
+/* 1. Global Reset & Layout Fixes */
+html, body {
+    height: 100%; /* vh-100'ün sağlıklı çalışması için şart */
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Scroll'u tamamen yasakla */
+    background-color: #1a1a1a;
+    font-family: 'Inter', sans-serif;
+}
+
+main[role="main"] {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* 2. Hero Section */
+.welcome-hero {
+    position: relative;
+    flex: 1;
+    min-height: 600px; /* Mobilde içeriğin sıkışmaması için minimum yükseklik */
+    width: 100%;
+    background: url('/static/images/farm-bg.png') center center / cover no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%);
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #fff;
+    max-width: 900px;
+    padding: 0 1.5rem;
+}
+
+.text-success-light {
+    color: var(--text-success-light);
+}
+
+/* 3. Buttons */
+.btn-blur {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* Safari desteği */
+    border: 1px solid var(--glass-border);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.btn-blur:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+/* 4. Feature Cards */
+.feature-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    padding: 1.5rem;
+    border-radius: 15px;
+    transition: transform 0.3s ease;
+    height: 100%;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.feature-card i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.feature-card h5 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.feature-card p {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin: 0;
+}
+
+/* Neden AgroLog istatistik kartları için */
+.border-success { border-color: var(--text-success-light) !important; }
+
+.bg-white.bg-opacity-10 {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    transition: all 0.3s ease;
+}
+
+.bg-white.bg-opacity-10:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.02);
+}
+
+h2.fw-bold {
+    letter-spacing: -1px;
+    color: #fff;
+}
+
+/* 5. Responsive */
+@media (max-width: 768px) {
+    .welcome-hero {
+        height: auto;
+        padding: 4rem 0; /* Mobilde içerik çoksa taşmasın diye */
+    }
+    
+    .welcome-hero h1 { font-size: 2.2rem; }
+    .welcome-hero p { font-size: 1rem; }
+    .feature-card { padding: 1rem; }
+}

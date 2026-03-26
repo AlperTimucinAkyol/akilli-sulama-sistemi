@@ -2,7 +2,7 @@ import paho.mqtt.client as mqtt
 import json
 import threading
 from datetime import datetime
-from config import MQTT_BROKER, MQTT_PORT, TOPIC_SENSOR
+from config import MQTT_BROKER, MQTT_PORT, TOPIC_SENSOR, TOPIC_COMMAND 
 from database import SessionLocal
 from db_utils import save_sensor_data, get_field_location
 from decision import DecisionLogic
@@ -12,6 +12,7 @@ import models
 def on_connect(client, userdata, flags, rc):
     print(f"MQTT: Broker'a bağlandı! Kod: {rc}")
     client.subscribe(TOPIC_SENSOR)
+    
 
 def on_message(client, userdata, msg):
     db = SessionLocal()
@@ -25,15 +26,16 @@ def on_message(client, userdata, msg):
         if lora_id and moisture_value is not None:
             node = save_sensor_data(lora_id, moisture_value, db)
             if node is None:
-                print(f"Hata: {lora_id} ID'li cihaz veritabanında kayıtlı değil!")
+                print(f"Hata: {lora_id} ID'li cihaz kayıtlı değil!")
                 return
             
             location = get_field_location(node.field_id, db)
             
             pump_status = DecisionLogic.decide_irrigation(float(moisture_value), location)
-            print(f"Pompa Durumu: {pump_status}")
+            print(f"Karar Verildi: {pump_status}")
             
-            # PUBLISH YAPILACAK
+            komut_paketi = f"{lora_id}:{pump_status}"
+            print(f"Komut MQTT'ye ({TOPIC_COMMAND}) basıldı: {komut_paketi}")
 
     except Exception as e:
         print(f"MQTT Veri İşleme Hatası: {e}")

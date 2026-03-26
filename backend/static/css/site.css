@@ -1,0 +1,41 @@
+:root {
+    --text-success-light: #4ade80;
+    --navbar-height: 65px;
+}
+
+/* 1. Global Reset & Flex Layout */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #1a1a1a;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    overflow-x: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Sayfaların içeriğini Navbar ve Footer arasına tam yayan sihirli sınıf */
+.main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 2. Navbar Özelleştirme */
+.navbar {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* 3. Footer */
+footer {
+    /* background-color: #f8f9fa; */
+    /* color: white; */
+    padding: 20px 0;
+    /* border-top: 1px solid #dee2e6; */
+}

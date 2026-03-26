@@ -1,13 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse          
+from fastapi.staticfiles import StaticFiles         
+from fastapi.templating import Jinja2Templates       
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import Base, engine
-from fastapi import FastAPI, HTTPException
 from services.weather_service import WeatherService
 from mqtt_client import start_mqtt_thread
 from sqlalchemy import text
+from api.api import api_router
+from web.views import router as web_router
 import models
-
-Base.metadata.create_all(bind=engine)
 
 
 @asynccontextmanager
@@ -25,41 +28,30 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.get("/")
-def index():
-    return {
-        "status": "online",
-        "message": "Akıllı Sulama Sistemi API Çalışıyor",
-        "database": "connected"
-    }
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+app.include_router(web_router)
+
+app.include_router(api_router, prefix="/api")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"],
+)
 
 @app.get("/api/weather/irrigation-check")
 async def check_irrigation_status():
-    """
-    Hava durumu verilerini çeker ve sulama karar mekanizması için 
-    özetlenmiş veriyi döner.
-    """
     summary = await WeatherService.get_irrigation_summary()
-
     if summary is None:
-        raise HTTPException(
-            status_code=503, 
-            detail="Hava durumu servisine şu an ulaşılamıyor. Lütfen daha sonra tekrar deneyin."
-        )
+        raise HTTPException(status_code=503, detail="Hava durumu servisine ulaşılamıyor.")
+    return {"status": "success", "data": summary}
 
-    return {
-        "status": "success",
-        "data": summary
-    }
-
-# karar mekanizmasını tetikleyen route
 @app.get("/api/irrigation/decision")
 async def get_irrigation_decision():
     summary = await WeatherService.get_irrigation_summary()
-    
     if not summary:
         raise HTTPException(status_code=500, detail="Hava durumu verisi eksik.")
-
-    # should_irrigate = decision_engine.calculate(summary)
-    
     return {"decision": "Wait", "reason": "Rain expected soon"}
