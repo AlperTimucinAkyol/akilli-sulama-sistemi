@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -9,7 +9,7 @@ class Field(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     name = Column(String(255))
     location = Column(String(255))
-    area_m2 = Column(String(255))
+    area_m2 = Column(Float)
     crop_type = Column(String(255))
     created_at = Column(Date)
 
@@ -17,4 +17,4 @@ class Field(Base):
     owner = relationship("User", back_populates="fields")
     nodes = relationship("Node", back_populates="field")
     # irrigation_rules = relationship("IrrigationRule", back_populates="field")
-    # irrigation_logs = relationship("IrrigationLog", back_populates="field")
+    irrigation_logs = relationship("IrrigationLog", back_populates="field")

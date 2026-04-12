@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-success"><i class="bi bi-tree me-2"></i>Tarlalarım</h2>
+        <form class="d-flex" role="search">
+          <input class="form-control me-2" type="search" placeholder="Tarla ara..." aria-label="Search">
+          <button class="btn btn-success" type="submit">Ara</button>
+        </form>
+        <button class="btn btn-success px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#addFieldModal">
+            <i class="bi bi-plus-lg me-1"></i> Yeni Tarla Ekle
+        </button>
+    </div>
+
+    <div class="row" id="fields-container">
+        </div>
+</div>
+
+<div class="modal fade" id="addFieldModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form id="add-field-form">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold">Yeni Tarla Tanımla</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Tarla Adı</label>
+                        <input type="text" id="add-name" name="name" class="form-control" placeholder="Örn: Kuzey Bahçesi" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Konum</label>
+                        <input type="text" id="add-location" name="location" class="form-control" placeholder="Örn: Of, Trabzon" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-dark">Alan (m²)</label>
+                            <input type="number" id="add-area" name="area_m2" class="form-control" placeholder="Örn: 1500">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-dark">Ürün Tipi</label>
+                            <input type="text" id="add-crop" name="crop_type" class="form-control" placeholder="Örn: Fındık">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="submit" class="btn btn-success w-100 fw-bold">Tarlayı Oluştur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editFieldModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form id="edit-field-form">
+                <input type="hidden" id="edit-field-id">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">Tarlayı Düzenle</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Tarla Adı</label>
+                        <input type="text" id="edit-name" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Konum</label>
+                        <input type="text" id="edit-location" name="location" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-dark">Alan (m²)</label>
+                            <input type="number" id="edit-area" name="area_m2" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-dark">Ürün Tipi</label>
+                            <input type="text" id="edit-crop" name="crop_type" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">Değişiklikleri Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+if (!localStorage.getItem("access_token")) {
+    window.location.href = "/login";
+}
+
+$(document).ready(function() {
+    let allFields = [];
+
+    function fetchFields() {
+        $.ajax({
+            url: '/api/fields/',
+            method: 'GET',
+            success: function(data) {
+                allFields = data;
+                renderFields(allFields);
+            }
+        });
+    }
+
+    function renderFields(fields) {
+        const container = $('#fields-container');
+        container.empty();
+
+        if (fields.length === 0) {
+            container.append('<div class="col-12 text-center py-5 text-muted">Aradığınız kriterlere uygun tarla bulunamadı.</div>');
+            return;
+        }
+
+        fields.forEach(field => {
+            container.append(`
+                <div class="col-md-4 mb-4" id="field-card-${field.id}">
+                    <div class="card h-100 shadow-sm border-0 border-top border-4 border-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title fw-bold text-dark mb-0">${field.name}</h5>
+                                <span class="badge bg-success-subtle text-success">${field.crop_type || 'Belirtilmedi'}</span>
+                            </div>
+                            <p class="card-text text-muted small mb-1">
+                                <i class="bi bi-geo-alt me-1"></i>${field.location}
+                            </p>
+                            <p class="card-text text-muted small mb-3">
+                                <i class="bi bi-rulers me-1"></i>Alan: ${field.area_m2 || '0'} m²
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <a href="/field-detail/${field.id}" class="btn btn-sm btn-success px-3 fw-bold">Yönet</a>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary btn-edit" 
+                                            data-id="${field.id}" data-name="${field.name}" 
+                                            data-location="${field.location}" data-area="${field.area_m2}" 
+                                            data-crop="${field.crop_type}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${field.id}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    fetchFields();
+
+    $('#add-field-form').on('submit', function(e) {
+        e.preventDefault();
+
+        const addData = {
+            name: $('#add-name').val(),
+            location: $('#add-location').val(),
+            area_m2: parseFloat($('#add-area').val()) || 0,
+            crop_type: $('#add-crop').val()
+        };
+
+        $.ajax({
+            url: '/api/fields/add',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(addData),
+            success: function() {
+                Swal.fire({
+                    icon: "success",
+                    title: "Başarılı!",
+                    text: "Tarla başarıyla oluşturuldu",
+                    timer: 1500,
+                    showConfirmButton: true,
+                    confirmButtonText: "Tamam"
+                })
+
+                $('#addFieldModal').modal('hide');
+                fetchFields();
+                $('#add-field-form')[0].reset();
+            },
+            error: function(xhr) { alert("Tarla eklenirken bir hata oluştu."); }
+        });
+    });
+
+    $(document).on('click', '.btn-edit', function() {
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        const location = $(this).data('location');
+        const area = $(this).data('area');
+        const crop = $(this).data('crop');
+
+        $('#edit-field-id').val(id);
+        $('#edit-name').val(name);
+        $('#edit-location').val(location);
+        $('#edit-area').val(area);
+        $('#edit-crop').val(crop);
+
+        $('#editFieldModal').modal('show');
+    });
+
+    $('#edit-field-form').on('submit', function(e) {
+        e.preventDefault();
+        const id = $('#edit-field-id').val();
+
+        Swal.fire({
+            icon: "warning",
+            title: "Emin misiniz?",
+            text: "Tarlanızın bilgilerini güncellemek istiyor musunuz?",
+            showConfirmButton: true,
+            showCancelButton: true,
+            confirmButtonColor: "#5bb573",
+            cancelButtonColor: "#3085d6",
+            cancelButtonText: "Vazgeç",
+            confirmButtonText: "Evet, Güncelle!",
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const updateData = {
+                    name: $('#edit-name').val(),
+                    location: $('#edit-location').val(),
+                    area_m2: parseFloat($('#edit-area').val()) || 0,
+                    crop_type: $('#edit-crop').val()
+                };
+
+                $.ajax({
+                    url: `/api/fields/${id}`,
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify(updateData),
+                    success: function() {
+                        $('#editFieldModal').modal('hide');
+                        fetchFields();
+                    },
+                    error: function(xhr) { alert("Güncelleme sırasında hata oluştu."); }
+                });
+            }
+        })
+    });
+
+    $(document).on('click', '.btn-delete', function() {
+        const fieldId = $(this).data('id');
+        const btn = $(this);
+
+        Swal.fire({
+            icon: "warning",
+            title: "Emin misiniz?",
+            text: "Bu tarla ve tarlaya bağlı tüm sensör verileri kalıcı olarak silinecektir!",
+            showCloseButton: true,
+            showCancelButton: true,
+            confirmButtonColor: "#d33", 
+            cancelButtonColor: "#3085d6",
+            cancelButtonText: "Vazgeç",
+            confirmButtonText: "Evet, Sil!",
+            reverseButtons: true
+            
+        }).then((result) => {
+            if (result.isConfirmed) {
+                btn.prop("disabled", true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+                $.ajax({
+                    url: `/api/fields/${fieldId}`,
+                    method: 'DELETE',
+                    success: function() {
+                        $(`#field-card-${fieldId}`).fadeOut(500, function() {
+                            $(this).remove();
+                        });
+
+                        Swal.fire({
+                            icon: "success",
+                            title: "Silindi!",
+                            text: "Tarla başarıyla silindi.",
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire("Hata!", "Tarla silinirken bir sorun oluştu.", "error");
+                        btn.prop("disabled", false).html(originalContent);
+                    }
+                });
+            }
+        })
+        
+    });
+
+    $('input[type="search"]').on('input', function() {
+        const searchText = $(this).val().toLowerCase();
+
+        const filtered = allFields.filter(field => {
+            const nameMatch = field.name ? field.name.toLowerCase().includes(searchText) : false;
+            const locationMatch = field.location ? field.location.toLowerCase().includes(searchText) : false;
+            const cropMatch = field.crop_type ? field.crop_type.toLowerCase().includes(searchText) : false;
+
+            return nameMatch || locationMatch || cropMatch;
+        });
+
+        renderFields(filtered);
+    });
+
+    $('form[role="search"]').on('submit', function(e) {
+        e.preventDefault(); 
+    });
+});
+</script>
+{% endblock %}

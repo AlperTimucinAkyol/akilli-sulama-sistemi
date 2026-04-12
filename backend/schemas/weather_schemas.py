@@ -26,7 +26,7 @@ class WeatherForecastResponse(BaseModel):
         return {
             "temp": next_data.main.temp,
             "humidity": next_data.main.humidity,
-            "condition": next_data.weather[0].main,
+            "condition": next_data.weather[0].description,
             "pop": next_data.pop,
             "rain_3h": next_data.rain.get("3h", 0) if next_data.rain else 0
         }

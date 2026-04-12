@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 
 {% block styles %}
+    <script>
+        (function() {
+            if (localStorage.getItem("access_token")) {
+                window.location.href = "/dashboard";
+            }
+        })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/home.css') }}" />
 {% endblock %}

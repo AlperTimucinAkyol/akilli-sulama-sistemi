@@ -1,5 +1,5 @@
 import httpx
-from config import WEATHER_API_KEY 
+from config import Config
 from schemas.weather_schemas import WeatherForecastResponse
 
 class WeatherService:
@@ -11,10 +11,11 @@ class WeatherService:
         OpenWeather API'den hava durumu verilerini çeker ve Pydantic modeline dönüştürür.
         """
         params = {
-            "q": location, # önceki "Istanbul"
-            "appid": WEATHER_API_KEY,
+            "q": location,
+            "appid": Config.WEATHER_API_KEY,
             "units": "metric", 
-            "cnt": 8           # Önümüzdeki 24 saati verir
+            "cnt": 8,           # Önümüzdeki 24 saati verir
+            "lang": "tr"
         }
 
         async with httpx.AsyncClient() as client:
@@ -31,7 +32,10 @@ class WeatherService:
 
             except httpx.HTTPStatusError as e:
                 print(f"API Hatası: {e.response.status_code} - {e.response.text}")
-                return None
+                return {
+                    "status": e.response.status_code,
+                    "message": e.response.text
+                }
             except Exception as e:
                 print(f"Beklenmedik bir hata oluştu: {e}")
                 return None

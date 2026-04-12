@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <a href="/dashboard" class="btn btn-outline-secondary btn-sm me-3 border-0">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            <div>
+                <h2 class="fw-bold mb-0 text-success" id="field-title">Yükleniyor...</h2>
+                <small class="text-success" id="field-location-text"></small>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#addNodeModal">
+                <i class="bi bi-plus-circle me-1"></i> Cihaz Ekle
+            </button>
+            <span class="badge bg-success-subtle text-success border border-success px-3 py-2" id="field-status">Sistem Çevrimiçi</span>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+                <div class="card-body p-0">
+                    <div class="row g-0">
+                        <div class="col-md-4 bg-light p-4 text-center border-end">
+                            <p class="text-muted small fw-bold mb-1">Şu Anki Hava</p>
+                            <h2 class="fw-bold mb-0 text-primary" id="weather-temp">--°C</h2>
+                            <p class="small mb-0" id="weather-desc">Yükleniyor...</p>
+                        </div>
+                        <div class="col-md-4 p-4 text-center border-end">
+                            <p class="text-muted small fw-bold mb-1">Yağış Olasılığı</p>
+                            <h2 class="fw-bold mb-0 text-info" id="weather-pop-val">--%</h2>
+                            <p class="small mb-0 text-secondary">Önümüzdeki 3 Saat</p>
+                        </div>
+                        <div class="col-md-4 p-4 text-center">
+                            <p class="text-muted small fw-bold mb-1">Son Nem Verisi</p>
+                            <h2 class="fw-bold mb-0 text-success" id="last-moisture-val">--%</h2>
+                            <p class="small mb-0 text-secondary" id="last-update-time">Güncelleniyor...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 p-4 mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Son 24 Saatlik Nem Analizi</h5>
+                    <button class="btn btn-sm btn-light" onclick="loadMoistureHistory()"><i class="bi bi-arrow-clockwise"></i></button>
+                </div>
+                <div style="height: 300px;">
+                    <canvas id="fieldHistoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4 bg-dark text-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-droplet-half me-2"></i>Sulama</h5>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="autoModeSwitch" checked>
+                            <label class="form-check-label small" for="autoModeSwitch">Otomatik Mod</label>
+                        </div>
+                    </div>
+                    <p class="small opacity-75">Toprak nemi kritik seviyenin altına düştüğünde sistem otomatik tetiklenir.</p>
+                    <div class="d-grid gap-2">
+                        <button id="pumpActionBtn" class="btn btn-success py-3 fw-bold">
+                            <i class="bi bi-power me-2"></i>Sulamayı Başlat
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0 text-dark">Bağlı Cihazlar (Nodes)</h6>
+                </div>
+                <div class="list-group list-group-flush" id="node-list">
+                    <div class="text-center py-4 text-muted small">Cihazlar taranıyor...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addNodeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form id="add-node-form">
+                <input type="hidden" name="field_id" value="{{ field_id }}">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Yeni Cihaz Tanımla</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3 text-start">
+                        <label class="form-label fw-bold small text-dark">LoRa ID / Cihaz Kimliği</label>
+                        <input type="text" name="lora_id" class="form-control" placeholder="Örn: LR-TR-61-01" required>
+                        <div class="form-text mt-2">
+                            ESP32 cihazınızın üzerinde yazan benzersiz LoRa adresini giriniz.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="submit" id="createSensorBtn" class="btn btn-dark w-100 fw-bold">Cihazı Tarlaya Bağla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+$(document).ready(function() {
+    const fieldId = "{{ field_id }}";
+
+    function loadFieldDetails() {
+        $.ajax({
+            url: `/api/fields/${fieldId}/detail`,
+            method: 'GET',
+            success: function(data) {
+                $('#field-title').text(data.field_name);
+                $('#field-location-text').text(data.location);
+
+                const nodeList = $('#node-list');
+                nodeList.empty();
+
+                let lastFoundMoisture = null;
+
+                if (!data.nodes || data.nodes.length === 0) {
+                    nodeList.append('<div class="p-4 text-center text-muted small">Bağlı cihaz bulunamadı.</div>');
+                    $('#last-moisture-val').text("N/A");
+                    $('#last-update-time').text("Cihaz yok");
+                } else {
+                    data.nodes.forEach(node => {
+                        const moistureSensor = node.sensors.find(s => s.type === 'soil_moisture');
+                        const moistureVal = moistureSensor ? moistureSensor.value : "N/A";
+
+                        const statusClass = node.status === 'Online' ? 'bg-success' : 'bg-secondary';
+                        const statusText = node.status || 'Offline';
+
+                        nodeList.append(`
+                            <div class="list-group-item p-3 border-0 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="fw-bold small text-dark">
+                                        <i class="bi bi-broadcast me-2"></i>${node.lora_id}
+                                    </div>
+                                    <span class="badge ${statusClass} small">${statusText}</span>
+                                </div>
+                                <div class="mt-2 d-flex justify-content-between align-items-center">
+                                    <span class="text-muted x-small">Son Nem: <b class="text-dark">%${moistureVal}</b></span>
+                                </div>
+                            </div>
+                        `);
+
+                        if (moistureVal !== "N/A") {
+                            lastFoundMoisture = moistureVal;
+                        }
+                    });
+
+                    if (lastFoundMoisture !== null) {
+                        $('#last-moisture-val').text("%" + lastFoundMoisture);
+                        $('#last-update-time').text("Anlık Veri");
+                    } else {
+                        $('#last-moisture-val').text("%--");
+                        $('#last-update-time').text("Veri bekleniyor");
+                    }
+                }
+                fetchWeatherForDetail(data.location);
+            }
+        });
+    }
+
+    function fetchWeatherForDetail(location) {
+        $.ajax({
+            url: '/api/weather/current',
+            method: 'GET',
+            data: { location: location },
+            success: function(response) {
+                $('#weather-temp').text(response.temp + "°C");
+                $('#weather-desc').text(response.condition);
+
+                const popPercent = Math.round(response.pop * 100);
+                $('#weather-pop-val').text("%" + popPercent);
+            },
+            error: function() {
+                $('#weather-pop-val').text("%--");
+            }
+        });
+    }
+
+    function loadMoistureHistory() {
+        $.ajax({
+            url: `/api/fields/${fieldId}/history`,
+            method: 'GET',
+            success: function(data) {
+                
+                const ctx = document.getElementById('fieldHistoryChart').getContext('2d');
+                if (window.myFieldChart) window.myFieldChart.destroy();
+
+                window.myFieldChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Toprak Nemi (%)',
+                            data: data.values,
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        scales: { y: { min: 0, max: 100 } }
+                    }
+                });
+            }
+        });
+    }
+
+    $('#add-node-form').on('submit', function(e) {
+        e.preventDefault();
+        const btn = $(this).find('#createSensorBtn');
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+        $.ajax({
+            url: '/api/nodes/add',
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(res) {
+                $('#addNodeModal').modal('hide');
+                Swal.fire("Başarılı", res.message, "success");
+                loadFieldDetails();
+                $('#add-node-form')[0].reset();
+            },
+            error: function(xhr) {
+                Swal.fire("Hata", xhr.responseJSON.detail, "error");
+            },
+            complete: function() { btn.prop('disabled', false).text('Cihazı Tarlaya Bağla'); }
+        });
+    });
+
+    loadFieldDetails();
+    loadMoistureHistory();
+});
+</script>
+{% endblock %}

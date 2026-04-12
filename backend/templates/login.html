@@ -20,7 +20,7 @@
         <div class="col-11 col-sm-8 col-md-6 col-lg-4">
             <div class="card shadow-lg border-0 rounded-4">
                 <div class="pt-4 ps-4">
-                    <a href = "{{ back_url or url_for('index') }}" class="btn btn-outline-success btn-sm fw-semibold">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-success btn-sm fw-semibold">
                         <i class="bi bi-arrow-left"></i> Geri
                     </a>
                 </div>
@@ -31,14 +31,22 @@
                         <p class="text-muted small">Sistemi yönetmek için kimliğinizi doğrulayın</p>
                     </div>
 
+                    <div id="error-message" class="alert" style="display: none;"></div>
                     <form action="/api/auth/login" method="POST">
                         <div class="form-floating mb-3">
                             <input type="email" name="email" class="form-control" id="email" placeholder="name@example.com" required>
                             <label for="email">E-posta Adresi</label>
                         </div>
-                        <div class="form-floating mb-3">
-                            <input type="password" name="password" class="form-control" id="password" placeholder="Şifre" required>
-                            <label for="password">Şifre</label>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <div class="form-floating flex-grow-1">
+                                    <input type="password" name="password" class="form-control border-end-0" id="password" placeholder="Şifre" required>
+                                    <label for="password">Şifre</label>
+                                </div>
+                                <button class="btn btn-outline-secondary border-start-0" type="button" id="toggle-password">
+                                    <i class="bi bi-eye" id="toggle-icon"></i>
+                                </button>
+                            </div>
                         </div>
                         
                         <div class="d-flex justify-content-between mb-3">
@@ -64,4 +72,63 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts%}
+    <script>
+        (function() {
+            if (localStorage.getItem("access_token")) {
+                window.location.href = "/dashboard";
+            }
+        })();
+
+        $(document).ready(function() {
+            $('form').on('submit', function(e) {
+                e.preventDefault();
+
+                var formData = $(this).serialize();
+
+                $.ajax({
+                    url: '/api/auth/login',
+                    method: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        localStorage.setItem("access_token", response.access_token)
+                        localStorage.setItem("first_name", response.first_name)
+                        
+                        $("#error-message")
+                            .removeClass('alert-danger')
+                            .addClass('alert-success')
+                            .text("Giriş Başarılı! Dashboard'a yönlendiriliyorsunuz...")
+                            .fadeIn();
+
+                        setTimeout(function() {
+                            window.location.href = "/dashboard"
+                        }, 1500);
+                    },
+                    error: function(xhr) {
+                        const error_message = xhr.responseJSON ? xhr.responseJSON.detail : "Bir hata oluştu."
+                        
+                        $('#error-message')
+                            .removeClass('alert-success')
+                            .addClass('alert-danger')
+                            .text(error_message)
+                            .fadeIn();
+                    }
+                })
+            })
+        })
+
+        $("#toggle-password").on('click', function() {
+            const passwordInput = $("#password");
+            const icon = $("#toggle-icon");
+
+            const type = passwordInput.attr('type') === "password" ? "text" : "password";
+            passwordInput.attr('type', type);
+
+            icon.toggleClass('bi-eye bi-eye-slash');
+
+            passwordInput.focus();
+        })
+    </script>
 {% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary"><i class="bi bi-droplet-stars me-2"></i>Sulama Kayıtları</h2>
+        <div class="d-flex gap-2">
+            <div class="d-flex flex-column gap-2">
+                <input type="text" id="log-search" class="form-control" placeholder="Tarla veya Cihaz Ara...">
+                <div class="d-flex gap-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="radioDefault" value="all" id="radioDefault1" checked>
+                      <label class="form-check-label" for="radioDefault1">
+                        Tümü
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="radioDefault" value=true id="radioDefault2">
+                      <label class="form-check-label" for="radioDefault2">
+                        Sulama Yapıldı
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="radioDefault" value=false id="radioDefault3">
+                      <label class="form-check-label" for="radioDefault3">
+                        Sulama Yapılmadı
+                      </label>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-secondary" id="filter-logs">Filtrele</button>
+            <button class="btn btn-primary" id="refresh-logs"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-dark">
+                    <tr class="text-start">
+                        <th>Tarih</th>
+                        <th>Tarla</th>
+                        <th>Cihaz</th>
+                        <th>Mod</th>
+                        <th>Nem</th>
+                        <th>Süre</th>
+                        <th>Durum</th>
+                        <th>Not</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-table-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+    
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        if (!localStorage.getItem("access_token")) {
+            window.location.href = "/login";
+        }
+        
+        let allLogs = [];
+
+        function fetchLogs() {
+            $.ajax({
+                url: '/api/irrigation/logs',
+                method: "GET",
+                success: function(data) {
+                    allLogs = data;
+                    console.log(allLogs);
+                    renderLogsTable(allLogs);
+                },
+                error: function(xhr) {
+                    console.error("Kayıtlar yüklenemedi:", xhr);
+                }
+            })
+        }
+
+        function renderLogsTable(logs) {
+            const tableBody = $("#logs-table-body");
+            tableBody.empty();
+
+            if (logs.length === 0) {
+                tableBody.append(
+                    `<tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            Sulama kaydı bulunamadı.
+                        </td>
+                    </tr>`
+                );
+            } else {
+                logs.forEach(log => {
+                    const actionBadge = log.action ? 'bg-success' : "bg-danger"; // true sulama yapıldı
+                    const modeBadge = log.mode ? "bg-info" : "bg-secondary"; // true otomatik
+
+                    const actionText = log.action ? 'Sulama yapıldı' : "Sulama yapılmadı"
+                    const modeText = log.action ? 'Otomatik' : "Manuel"
+
+                    const date = new Date(log.timestamp);
+
+                    const formattedDate = date.toLocaleString('tr-TR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    tableBody.append(`
+                        <tr>
+                            <td>${formattedDate}</td>
+                            <td>${log.field_name}</td>
+                            <td><code class="text-primary">${log.lora_id}</code></td>
+                            <td><span class="badge ${modeBadge}">${modeText}</span></td>
+                            <td><b class="text-success">%${log.soil_moisture}</b></td>
+                            <td>${log.duration_min} dk</td>
+                            <td><span class="badge ${actionBadge}">${actionText}</span></td>
+                            <td class="small text-muted">${log.decision_note || '-'}</td>
+                        </tr>
+                    `)
+                })
+            }
+        }
+
+        fetchLogs();
+
+
+        $("#filter-logs").on('click', function() {
+            const searchText = $("#log-search").val().toLowerCase();
+            const selectedRadioValue = $('input[name="radioDefault"]:checked').val();
+            const radioValueFormatted = selectedRadioValue === "true" ? true : false;
+            let filtered;
+
+            if (selectedRadioValue === "all") {
+                filtered = allLogs.filter(log =>
+                    log.field_name.toLowerCase().includes(searchText) ||
+                    log.lora_id.toLowerCase().includes(searchText)
+                );
+            } else {
+                filtered = allLogs.filter(log =>
+                    (log.field_name.toLowerCase().includes(searchText) ||
+                    log.lora_id.toLowerCase().includes(searchText)) && (log.action === radioValueFormatted)
+                );
+            }
+
+
+            renderLogsTable(filtered);
+        })
+
+        $("#refresh-logs").on("click", function() {
+            fetchLogs();
+        })
+    })
+</script>
+{% endblock %}

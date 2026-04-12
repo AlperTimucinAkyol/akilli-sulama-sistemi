@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h3 class="fw-bold mb-4 text-success"><i class="bi bi-person-gear me-2"></i>Profil Ayarları</h3>
+            
+            <div id="alert-msg" class="alert" style="display: none;"></div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white fw-bold py-3">Kişisel Bilgiler</div>
+                <div class="card-body p-4">
+                    <form id="profile-form">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Ad</label>
+                                <input type="text" name="firstName" id="p-first-name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Soyad</label>
+                                <input type="text" name="lastName" id="p-last-name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">E-posta (Değiştirilemez)</label>
+                            <input type="email" id="p-email" class="form-control bg-light" readonly>
+                        </div>
+                        <button type="submit" class="btn btn-success px-4">Değişiklikleri Kaydet</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 border-top border-4 border-danger">
+                <div class="card-header bg-white fw-bold py-3 text-danger">Güvenlik ve Şifre</div>
+                <div class="card-body p-4">
+                    <form id="password-form">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Mevcut Şifre</label>
+                            <input type="password" name="oldPassword" class="form-control" placeholder="••••••••" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Yeni Şifre</label>
+                            <input type="password" name="newPassword" class="form-control" placeholder="En az 6 karakter" required>
+                        </div>
+                        <button type="submit" class="btn btn-danger btn-sm px-4">Şifreyi Güncelle</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    const token = localStorage.getItem("access_token");
+
+    function loadUserData() {
+        $.ajax({
+            url: '/api/users/me',
+            method: 'GET',
+            success: function(user) {
+                $('#p-first-name').val(user.first_name);
+                $('#p-last-name').val(user.last_name);
+                $('#p-email').val(user.email);
+            }
+        });
+    }
+    loadUserData();
+
+    $('#profile-form').on('submit', function(e) {
+        e.preventDefault();
+        const btn = $(this).find('button');
+        btn.prop('disabled', true).text(Güncelleniyor)
+
+        $.ajax({
+            url: '/api/users/update',
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                $('#alert-msg').removeClass('alert-danger').addClass('alert-success')
+                    .text(response.message).fadeIn().delay(3000).fadeOut();
+            }
+        });
+    });
+
+    $("#password-form").on('submit', function(e) {
+        e.preventDefault();
+        const btn = $(this).find('button');
+        btn.prop('disabled', true).text("Güncelleniyor...")
+
+        $.ajax({
+            url: '/api/users/update-password',
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                $("#alert-msg").removeClass('alert-danger').addClass('alert-success')
+                    .text(response.message).fadeIn().delay(3000).fadeOut();
+                $("#password-form")[0].reset();
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON ? xhr.responseJSON.detail : "Şifre güncellenemedi.";
+                $('#alert-msg').removeClass('alert-success').addClass('alert-danger')
+                    .text(errorMsg).fadeIn().delay(3000).fadeOut();
+            },
+            complete: function() {
+                btn.prop('disabled', false).text('Şifreyi Güncelle')
+            }
+        })
+    })
+});
+</script>
+{% endblock %}

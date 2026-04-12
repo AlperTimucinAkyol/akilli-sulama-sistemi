@@ -39,3 +39,13 @@ footer {
     padding: 20px 0;
     /* border-top: 1px solid #dee2e6; */
 }
+
+#nav-profile-menu .nav-link:after {
+    display: none; /* Dropdown okunu gizlemek daha modern durur */
+}
+
+#nav-profile-menu img:hover {
+    transform: scale(1.1);
+    transition: 0.3s;
+    cursor: pointer;
+}

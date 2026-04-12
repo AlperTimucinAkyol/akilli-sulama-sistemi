@@ -21,7 +21,7 @@
         <div class="col-11 col-sm-10 col-md-8 col-lg-5">
             <div class="card shadow-lg border-0 rounded-4">
                 <div class="pt-4 ps-4">
-                    <a href="/" class="btn btn-outline-success btn-sm fw-semibold">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-success btn-sm fw-semibold">
                         <i class="bi bi-arrow-left"></i> Geri
                     </a>
                 </div>
@@ -31,7 +31,8 @@
                         <h2 class="fw-bold text-success mt-2">Kayıt Ol</h2>
                         <p class="text-muted small">AgroLog ailesine katılarak tarlanı akıllandır.</p>
                     </div>
-
+                    
+                    <div id="error-message" class="alert" style="display: none;"></div>
                     <form action="/api/auth/register" method="POST">
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -73,4 +74,49 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function() {
+        if (localStorage.getItem("access_token")) {
+            window.location.href = "/dashboard";
+        }
+    })();
+
+    $(document).ready(function() {
+        $('form').on('submit', function(e) {
+            e.preventDefault();
+
+            const formData = $(this).serialize();
+
+            $.ajax({
+                url: '/api/auth/register',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    $('#error-message')
+                        .text("Kayıt Başarılı! Yönlendiriliyorsunuz...")
+                        .removeClass('alert-danger')
+                        .addClass('alert-success')
+                        .fadeIn();
+                        
+                    setTimeout(function() {
+                        window.location.href = "/login";
+                    }, 1500);
+                },
+                error: function(xhr) {
+                    const error_message = xhr.responseJSON ? xhr.responseJSON.detail : "Bir hata oluştu.";
+                    $('#error-message')
+                        .text(error_message)
+                        .removeClass('alert-success')
+                        .addClass('alert-danger').
+                        fadeIn();
+                }
+            })
+        })
+    })
+
+</script>
+
 {% endblock %}
