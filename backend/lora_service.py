@@ -125,35 +125,34 @@ class LoRaGateway:
 
     # ── Veri Alma ────────────────────────────────────────────
     def _read_packet(self):
-        """
-        UART'tan tam bir sensör paketi oku.
-        ESP32 struct.pack ile binary gönderir — aynı format buraya unpack edilir.
-        """
         self._wait_aux_high()
         raw = self.ser.read(SENSOR_SIZE)
         if len(raw) < SENSOR_SIZE:
             return None
         try:
             node_id_b, moisture, raw_adc, pump_on = struct.unpack(SENSOR_FMT, raw)
-            node_id = node_id_b.decode("utf-8", errors="ignore").rstrip("\x00")
+            # NUL karakterlerini temizleyerek decode et
+            node_id = node_id_b.split(b'\x00')[0].decode("utf-8", errors="ignore")
+            
+            # Veri çok saçma gelmişse (kayma varsa) reddet
+            if not node_id or len(node_id) < 3:
+                raise struct.error("Geçersiz Node ID")
+                
             return {
                 "lora_id":      node_id,
                 "value":        round(moisture, 2),
                 "raw_adc":      raw_adc,
                 "pump_on":      bool(pump_on)
             }
-        except struct.error as e:
-            log.error(f"Paket ayrıştırma hatası: {e} | Ham: {raw.hex()}")
-            self.ser.reset_input_buffer()  # <-- BURASI ÇOK KRİTİK: Çöpleri temizle!
+        except Exception as e:
+            # Kayma olduğunda tamponu boşaltıp bir sonraki paketi bekle
+            self.ser.reset_input_buffer()
             return None
 
     # ── Komut Gönderme ────────────────────────────────────────
     def send_command(self, node_id: str, pump_on: bool):
-        """
-        ESP32'ye LoRa üzerinden pompa komutu gönderir.
-        """
         if self.ser is None or not self.ser.is_open:
-            log.error("Serial port kapalı — komut gönderilemedi!")
+            log.error("Serial port kapalı!")
             return
 
         self._wait_aux_high()
@@ -162,7 +161,12 @@ class LoRaGateway:
                               1 if pump_on else 0)
         with self._lock:
             self.ser.write(payload)
+            self.ser.flush() # Verinin tamamen gittiğinden emin ol
         log.info(f"Komut gönderildi -> {node_id} | Pompa: {'AÇ' if pump_on else 'KAPAT'}")
+        
+        # KRİTİK: Komuttan sonra girişte kalan çöp verileri temizle
+        time.sleep(0.1) 
+        self.ser.reset_input_buffer()
 
     # ── MQTT ─────────────────────────────────────────────────
     def _on_mqtt_connect(self, client, userdata, flags, rc, properties=None):
