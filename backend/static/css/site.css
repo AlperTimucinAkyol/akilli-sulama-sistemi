@@ -5,7 +5,6 @@
 
 /* 1. Global Reset & Flex Layout */
 html, body {
-    height: 100%;
     margin: 0;
     padding: 0;
     background-color: #1a1a1a;
@@ -48,4 +47,42 @@ footer {
     transform: scale(1.1);
     transition: 0.3s;
     cursor: pointer;
+}
+
+/* Sidebar Konteyner */
+#sidebar {
+    background-color: #212529; /* Koyu tema */
+    transition: all 0.3s;
+    width: 240px;
+    min-width: 240px;
+}
+
+/* Linklerin Genel Hali */
+.sidebar-link {
+    background-color: transparent !important;
+    color: #adb5bd !important;
+    border: none !important;
+    transition: all 0.2s ease-in-out;
+    border-left: 4px solid transparent;
+}
+
+/* Hover Efekti */
+.sidebar-link:hover {
+    color: #fff !important;
+    background-color: #2c3136 !important;
+    padding-left: 25px !important;
+}
+
+/* Seçili (Active) Sekme */
+.sidebar-link.active {
+    color: #fff !important;
+    background-color: #198754 !important;
+    border-left: 4px solid #fff !important; 
+    font-weight: 600;
+}
+
+/* İkonlar için küçük bir dokunuş */
+.sidebar-link i {
+    font-size: 1.1rem;
+    vertical-align: middle;
 }

@@ -64,7 +64,7 @@ async def fields_page(request: Request):
         "title": "Tarlalarım - AgroLog"
     })
 
-@router.get("/irrigation_logs", response_class=HTMLResponse)
+@router.get("/irrigation/logs", response_class=HTMLResponse)
 async def irrigation_logs_page(request: Request):
     return templates.TemplateResponse("irrigation_logs.html", {
         "request": request,

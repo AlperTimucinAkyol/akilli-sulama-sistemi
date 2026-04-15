@@ -47,7 +47,7 @@
             <div class="card shadow-sm border-0 p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="fw-bold mb-0">Son 24 Saatlik Nem Analizi</h5>
-                    <button class="btn btn-sm btn-light" onclick="loadMoistureHistory()"><i class="bi bi-arrow-clockwise"></i></button>
+                    <button class="btn btn-sm btn-light"><i class="bi bi-arrow-clockwise"></i></button>
                 </div>
                 <div style="height: 300px;">
                     <canvas id="fieldHistoryChart"></canvas>
@@ -247,6 +247,10 @@ $(document).ready(function() {
             complete: function() { btn.prop('disabled', false).text('Cihazı Tarlaya Bağla'); }
         });
     });
+
+    $('#refreshHistory').on('click', function() {
+        loadMoistureHistory();
+    })
 
     loadFieldDetails();
     loadMoistureHistory();
