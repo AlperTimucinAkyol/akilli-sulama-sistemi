@@ -73,7 +73,7 @@ $(document).ready(function() {
     $('#profile-form').on('submit', function(e) {
         e.preventDefault();
         const btn = $(this).find('button');
-        btn.prop('disabled', true).text(Güncelleniyor)
+        btn.prop('disabled', true).text("Güncelleniyor...")
 
         $.ajax({
             url: '/api/users/update',
