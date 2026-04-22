@@ -10,12 +10,12 @@ def save_sensor_data(lora_id: int, moisture_value: float, db: Session):
 
     sensor = db.query(models.Sensor).filter(
         models.Sensor.node_id == node.id,
-        models.Sensor.sensor_type == "Soil Moisture"
+        models.Sensor.sensor_type == "soil_moisture"
     ).first()
 
     if not sensor:
-        print(f"Bilgi: {lora_id} için 'Soil Moisture' sensörü oluşturuluyor...")
-        sensor = models.Sensor(node_id=node.id, sensor_type="Soil Moisture", created_at=datetime.now())
+        print(f"Bilgi: {lora_id} için 'soil_moisture' sensörü oluşturuluyor...")
+        sensor = models.Sensor(node_id=node.id, sensor_type="soil_moisture", created_at=datetime.now())
         db.add(sensor)
         db.commit()
         db.refresh(sensor)

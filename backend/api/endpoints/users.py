@@ -25,7 +25,10 @@ async def update_user(
     current_user.last_name = lastName
     
     db.commit()
-    return {"message": "Profil başarıyla güncellendi!"}
+    return {
+        "message": "Profil başarıyla güncellendi!",
+        "first_name": firstName
+    }
 
 
 @router.post("/update-password")

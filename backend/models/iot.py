@@ -17,7 +17,7 @@ class Node(Base):
     # İlişkiler
     field = relationship("Field", back_populates="nodes")
     sensors = relationship("Sensor", back_populates="node")
-    # irrigation_logs = relationship("IrrigationLog", back_populates="node")
+    irrigation_logs = relationship("IrrigationLog", back_populates="node")
 
 
 class Sensor(Base):
@@ -56,6 +56,7 @@ class IrrigationLog(Base):
     duration_min = Column(Float)
     soil_moisture = Column(Float)
     decision_note = Column(String)
-    timestamp = Column(DateTime, default=datetime.now())
-    
+    timestamp = Column(DateTime, default=datetime.now)
+
     field = relationship("Field", back_populates="irrigation_logs")
+    node = relationship("Node", back_populates="irrigation_logs")

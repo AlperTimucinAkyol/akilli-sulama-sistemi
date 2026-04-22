@@ -6,8 +6,8 @@ from typing import Optional
 class IrrigationLogBase(BaseModel):
     action: bool
     mode: bool
-    duration_min: float
-    soil_moisture: float
+    duration_min: Optional[float] = None   # Otomatik logda süre bilinmez
+    soil_moisture: Optional[float] = None  # Bazı manuel kayıtlarda olmayabilir
     decision_note: Optional[str] = None
 
 

@@ -82,6 +82,20 @@ $(document).ready(function() {
             success: function(response) {
                 $('#alert-msg').removeClass('alert-danger').addClass('alert-success')
                     .text(response.message).fadeIn().delay(3000).fadeOut();
+                
+                localStorage.setItem("first_name", response.first_name);
+                $('#nav-user-name').text(response.first_name);
+
+                const newAvatarUrl = `https://ui-avatars.com/api/?name=${response.first_name}&background=198754&color=fff`;
+                $('#nav-profile-menu img').attr('src', newAvatarUrl);
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON ? xhr.responseJSON.detail : "Profil güncellenemedi.";
+                $('#alert-msg').removeClass('alert-success').addClass('alert-danger')
+                    .text(errorMsg).fadeIn().delay(3000).fadeOut();
+            },
+            complete: function() {
+                btn.prop('disabled', false).text('Değişiklikleri Kaydet')
             }
         });
     });
