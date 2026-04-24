@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, DateTime, Float, Boolean
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from database import Base
 from datetime import datetime
 
@@ -60,3 +61,16 @@ class IrrigationLog(Base):
 
     field = relationship("Field", back_populates="irrigation_logs")
     node = relationship("Node", back_populates="irrigation_logs")
+    
+
+class IrrigationRule(Base):
+    __tablename__ = "irrigation_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    field_id = Column(Integer, ForeignKey("fields.id", ondelete="CASCADE"))
+    name = Column(String(100))
+    min_soil_moisture = Column(Float)
+    max_temperature = Column(Float)
+    duration_min = Column(Integer)
+    rain_block = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

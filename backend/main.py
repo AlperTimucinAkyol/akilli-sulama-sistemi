@@ -7,30 +7,57 @@ from contextlib import asynccontextmanager
 from database import Base, engine
 from services.weather_service import WeatherService
 from mqtt_client import start_mqtt_thread
+from lora_service import LoRaGateway ##### GEÇİÇİ YORUMA ALINDI RASPI'DE AÇILMALI #####
 from sqlalchemy import text
 from api.api import api_router
 from web.views import router as web_router
-import models
+import offline_queue as oq
+from sync_worker import start_sync_worker
+import os
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # SQLite offline kuyruğu başlat
+    oq.init_queue()
+
+    # PostgreSQL bağlantısını ve tablo oluşturmayı dene
+    # DB kapalıysa uygulama yine başlar; sync worker DB açılınca devreye girer
     try:
         with engine.connect() as conn:
-            result = conn.execute(text("SELECT 1"))
-            print("DB bağlantısı başarılı:", result.scalar())
+            conn.execute(text("SELECT 1"))
+            print("DB bağlantısı başarılı, tablolar oluşturuluyor...")
+        Base.metadata.create_all(engine)
+        print("Tablolar hazır.")
     except Exception as e:
-        print("DB bağlantısı hatası:", e)
+        print(f"DB bağlantısı hatası (uygulama offline modda devam ediyor): {e}")
         
     print("MQTT başlatılıyor...")
     start_mqtt_thread()
-    yield 
+
+    # Offline kuyruk sync worker'ını başlat
+    start_sync_worker()
+    print("Offline kuyruk sync worker başlatıldı.")
+    
+    
+    ##### GEÇİÇİ YORUMA ALINDI RASPI'DE AÇILMALI #####
+    app.state.lora_gw = LoRaGateway()
+    app.state.lora_gw.start_in_thread()
+    print("LoRa Gateway arka planda başlatıldı.")
+    # print("LoRa Gateway başlatılıyor...")
+    # lora_gw = LoRaGateway()
+    # lora_gw.start_in_thread()
+
+    yield
+    app.state.lora_gw._cleanup()
 
 app = FastAPI(lifespan=lifespan)
 
-Base.metadata.create_all(engine)
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
+current_dir = os.path.dirname(os.path.realpath(__file__))
+static_dir = os.path.join(current_dir, "static")
+print(static_dir)
+# Mount işlemini bu tam yol ile yapalım
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 app.include_router(web_router)
 

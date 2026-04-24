@@ -13,6 +13,9 @@
             </div>
         </div>
         <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" id="btn-rule-modal" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+                <i class="bi bi-gear-wide-connected me-1"></i> <span id="rule-btn-text">Sulama Kuralı Ekle</span>
+            </button>
             <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#addNodeModal">
                 <i class="bi bi-plus-circle me-1"></i> Cihaz Ekle
             </button>
@@ -111,120 +114,72 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="addRuleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form id="add-rule-form">
+                <input type="hidden" name="field_id" value="{{ field_id }}">
+                
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-gear-wide-connected me-2"></i>
+                        <span id="rule-modal-title">Yeni Sulama Kuralı</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-dark">Kural İsmi</label>
+                        <input type="text" name="name" class="form-control" placeholder="Örn: Hassas Yaz Sulaması" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-danger">Min. Toprak Nemi (%)</label>
+                            <input type="number" name="min_soil_moisture" class="form-control" placeholder="30" min="0" max="100" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-warning">Maks. Sıcaklık (°C)</label>
+                            <input type="number" name="max_temperature" class="form-control" placeholder="35" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-primary">Sulama Süresi (Dakika)</label>
+                        <input type="number" name="duration_min" class="form-control" placeholder="15" required>
+                        <div class="form-text">Sistem tetiklendiğinde motorun ne kadar çalışacağını belirler.</div>
+                    </div>
+
+                    <hr>
+
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="rain_block" id="rainBlockSwitch" checked>
+                        <label class="form-check-label small fw-bold text-dark" for="rainBlockSwitch">Yağmur Varsa Sulamayı İptal Et</label>
+                    </div>
+                </div>
+                
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="btn-rule-submit" class="btn btn-primary px-4 fw-bold">Kuralı Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+let existingRuleId = null; // Kural varsa ID'sini burada tutacağız
+const fieldId = "{{ field_id }}";
+
 $(document).ready(function() {
-    const fieldId = "{{ field_id }}";
-
-    function loadFieldDetails() {
-        $.ajax({
-            url: `/api/fields/${fieldId}/detail`,
-            method: 'GET',
-            success: function(data) {
-                $('#field-title').text(data.field_name);
-                $('#field-location-text').text(data.location);
-
-                const nodeList = $('#node-list');
-                nodeList.empty();
-
-                let lastFoundMoisture = null;
-
-                if (!data.nodes || data.nodes.length === 0) {
-                    nodeList.append('<div class="p-4 text-center text-muted small">Bağlı cihaz bulunamadı.</div>');
-                    $('#last-moisture-val').text("N/A");
-                    $('#last-update-time').text("Cihaz yok");
-                } else {
-                    data.nodes.forEach(node => {
-                        const moistureSensor = node.sensors.find(s => s.type === 'soil_moisture');
-                        const moistureVal = moistureSensor ? moistureSensor.value : "N/A";
-
-                        const statusClass = node.status === 'Online' ? 'bg-success' : 'bg-secondary';
-                        const statusText = node.status || 'Offline';
-
-                        nodeList.append(`
-                            <div class="list-group-item p-3 border-0 border-bottom">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="fw-bold small text-dark">
-                                        <i class="bi bi-broadcast me-2"></i>${node.lora_id}
-                                    </div>
-                                    <span class="badge ${statusClass} small">${statusText}</span>
-                                </div>
-                                <div class="mt-2 d-flex justify-content-between align-items-center">
-                                    <span class="text-muted x-small">Son Nem: <b class="text-dark">%${moistureVal}</b></span>
-                                </div>
-                            </div>
-                        `);
-
-                        if (moistureVal !== "N/A") {
-                            lastFoundMoisture = moistureVal;
-                        }
-                    });
-
-                    if (lastFoundMoisture !== null) {
-                        $('#last-moisture-val').text("%" + lastFoundMoisture);
-                        $('#last-update-time').text("Anlık Veri");
-                    } else {
-                        $('#last-moisture-val').text("%--");
-                        $('#last-update-time').text("Veri bekleniyor");
-                    }
-                }
-                fetchWeatherForDetail(data.location);
-            }
-        });
-    }
-
-    function fetchWeatherForDetail(location) {
-        $.ajax({
-            url: '/api/weather/current',
-            method: 'GET',
-            data: { location: location },
-            success: function(response) {
-                $('#weather-temp').text(response.temp + "°C");
-                $('#weather-desc').text(response.condition);
-
-                const popPercent = Math.round(response.pop * 100);
-                $('#weather-pop-val').text("%" + popPercent);
-            },
-            error: function() {
-                $('#weather-pop-val').text("%--");
-            }
-        });
-    }
-
-    function loadMoistureHistory() {
-        $.ajax({
-            url: `/api/fields/${fieldId}/history`,
-            method: 'GET',
-            success: function(data) {
-                
-                const ctx = document.getElementById('fieldHistoryChart').getContext('2d');
-                if (window.myFieldChart) window.myFieldChart.destroy();
-
-                window.myFieldChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: 'Toprak Nemi (%)',
-                            data: data.values,
-                            borderColor: '#198754',
-                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                            fill: true,
-                            tension: 0.3
-                        }]
-                    },
-                    options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false,
-                        scales: { y: { min: 0, max: 100 } }
-                    }
-                });
-            }
-        });
-    }
+    checkExistingRule();
+    loadFieldDetails();
+    loadMoistureHistory();
 
     $('#add-node-form').on('submit', function(e) {
         e.preventDefault();
@@ -252,8 +207,177 @@ $(document).ready(function() {
         loadMoistureHistory();
     })
 
-    loadFieldDetails();
-    loadMoistureHistory();
+    $('#add-rule-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const payload = {
+            field_id: parseInt($('input[name="field_id"]').val()),
+            name: $('input[name="name"]').val(),
+            min_soil_moisture: parseFloat($('input[name="min_soil_moisture"]').val()),
+            max_temperature: parseFloat($('input[name="max_temperature"]').val()),
+            duration_min: parseInt($('input[name="duration_min"]').val()),
+            rain_block: $('#rainBlockSwitch').is(':checked'),
+        };
+    
+        // Eğer ID varsa güncelleme yap, yoksa yeni kural oluştur
+        const url = existingRuleId ? `/api/irrigation/rules/${existingRuleId}` : '/api/irrigation/rules';
+        const method = existingRuleId ? 'PUT' : 'POST';
+    
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function(response) {
+                Swal.fire('Başarılı!', 'Kural güncellendi.', 'success');
+                $('#addRuleModal').modal('hide');
+                checkExistingRule(); // Durumu tekrar kontrol et ve UI'ı güncelle
+            }
+        });
+    });
 });
+
+function loadFieldDetails() {
+    $.ajax({
+        url: `/api/fields/${fieldId}/detail`,
+        method: 'GET',
+        success: function(data) {
+            $('#field-title').text(data.field_name);
+            $('#field-location-text').text(data.location);
+
+            const nodeList = $('#node-list');
+            nodeList.empty();
+
+            let lastFoundMoisture = null;
+
+            if (!data.nodes || data.nodes.length === 0) {
+                nodeList.append('<div class="p-4 text-center text-muted small">Bağlı cihaz bulunamadı.</div>');
+                $('#last-moisture-val').text("N/A");
+                $('#last-update-time').text("Cihaz yok");
+            } else {
+                data.nodes.forEach(node => {
+                    const moistureSensor = node.sensors.find(s => s.type === 'soil_moisture');
+                    const moistureVal = moistureSensor ? moistureSensor.value : "N/A";
+
+                    const statusClass = node.status === 'Online' ? 'bg-success' : 'bg-secondary';
+                    const statusText = node.status || 'Offline';
+
+                    nodeList.append(`
+                        <div class="list-group-item p-3 border-0 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="fw-bold small text-dark">
+                                    <i class="bi bi-broadcast me-2"></i>${node.lora_id}
+                                </div>
+                                <span class="badge ${statusClass} small">${statusText}</span>
+                            </div>
+                            <div class="mt-2 d-flex justify-content-between align-items-center">
+                                <span class="text-muted x-small">Son Nem: <b class="text-dark">%${moistureVal}</b></span>
+                            </div>
+                        </div>
+                    `);
+
+                    if (moistureVal !== "N/A") {
+                        lastFoundMoisture = moistureVal;
+                    }
+                });
+
+                if (lastFoundMoisture !== null) {
+                    $('#last-moisture-val').text("%" + lastFoundMoisture);
+                    $('#last-update-time').text("Anlık Veri");
+                } else {
+                    $('#last-moisture-val').text("%--");
+                    $('#last-update-time').text("Veri bekleniyor");
+                }
+            }
+
+            fetchWeatherForDetail(data.location);
+        }
+    });
+}
+
+function fetchWeatherForDetail(location) {
+    $.ajax({
+        url: '/api/weather/current',
+        method: 'GET',
+        data: { location: location },
+        success: function(response) {
+            $('#weather-temp').text(response.temp + "°C");
+            $('#weather-desc').text(response.condition);
+
+            const popPercent = Math.round(response.pop * 100);
+            $('#weather-pop-val').text("%" + popPercent);
+        },
+        error: function() {
+            $('#weather-pop-val').text("%--");
+        }
+    });
+}
+
+function loadMoistureHistory() {
+    $.ajax({
+        url: `/api/fields/${fieldId}/history`,
+        method: 'GET',
+        success: function(data) {
+                
+            const ctx = document.getElementById('fieldHistoryChart').getContext('2d');
+            if (window.myFieldChart) window.myFieldChart.destroy();
+
+            window.myFieldChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Toprak Nemi (%)',
+                        data: data.values,
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 100 } }
+                }
+            });
+        }
+    });
+}
+
+function checkExistingRule() {
+    $.ajax({
+        url: `/api/irrigation/rules/field/${fieldId}`, // Bu tarlanın aktif kuralını getiren endpoint
+        method: 'GET',
+        success: function(rule) {
+            if (rule) {
+                existingRuleId = rule.id;
+
+                $('#rule-btn-text').text('Sulama Kuralını Düzelt');
+                $('#rule-modal-title').text('Sulama Kuralını Düzenle');
+                $('#btn-rule-submit').text('Değişiklikleri Kaydet');
+                
+                // Formu doldur
+                $('input[name="name"]').val(rule.name);
+                $('input[name="min_soil_moisture"]').val(rule.min_soil_moisture);
+                $('input[name="max_temperature"]').val(rule.max_temperature);
+                $('input[name="duration_min"]').val(rule.duration_min);
+                $('#rainBlockSwitch').prop('checked', rule.rain_block);
+            }
+        },
+        error: function(xhr) {
+            if (xhr.status === 404) {
+                // Kural bulunamadı -> Ekleme Modu (Bu bir hata değil, durumdur)
+                console.log("Kural tanımlanmamış, temiz form hazır.");
+                existingRuleId = null;
+                $('#rule-btn-text').text('Sulama Kuralı Ekle');
+            } else {
+                // Gerçek bir bağlantı hatası varsa burası çalışır
+                console.error("Beklenmedik bir hata oluştu:", xhr.statusText);
+            }
+        }
+    });
+}
+
 </script>
 {% endblock %}
