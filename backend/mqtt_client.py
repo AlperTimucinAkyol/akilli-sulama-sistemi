@@ -36,7 +36,7 @@ async def _process_message_async(lora_id: str, moisture_value: float, temp_value
 
     # 2. KARAR MEKANİZMASI (Yeni asenkron yapı)
     # Eğer ESP32 sıcaklık göndermiyorsa, 25.0 gibi bir değer veya hava durumu verisi paslanabilir.
-    decision = await DecisionLogic.decide_irrigation(
+    decision, weather, reason = await DecisionLogic.decide_irrigation(
         db=db,
         field_id=node.field_id,
         current_moisture=moisture_value,
@@ -46,6 +46,10 @@ async def _process_message_async(lora_id: str, moisture_value: float, temp_value
     
     pump_on = (decision == "ON")
     logger.info(f"Karar Verildi: {'SULAMA AÇ' if pump_on else 'SULAMA KAPAT'}")
+    
+    weather_str = "Hava Verisi Alınamadı"
+    if weather:
+        weather_str = f"{weather.get('condition', 'Bilinmiyor').capitalize()}, Yağmur: {weather.get('rain_3h', 0)}mm"
 
     # 3. Log Kaydı
     log = IrrigationLog(
@@ -55,8 +59,8 @@ async def _process_message_async(lora_id: str, moisture_value: float, temp_value
         mode=True, # Otomatik Mod
         soil_moisture=float(moisture_value),
         decision_note=(
-            f"Nem: %{moisture_value}, Sıcaklık: {temp_value}°C, Konum: {location}, "
-            f"Karar: {decision}"
+            f"Durum: {reason} | Hava: {weather_str} | Konum: {location}"
+            # f"Karar: {decision}"
         ),
         timestamp=datetime.now(),
     )

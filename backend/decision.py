@@ -32,24 +32,24 @@ class DecisionLogic:
             max_temp = rule.max_temperature
             rain_block = rule.rain_block
 
+        forecast_summary = await WeatherService.get_irrigation_summary(location)
+        
         # 2. KRİTİK KONTROL: Toprak Nemi
         if current_moisture >= min_moisture:
-            print(f"Nem yeterli (%{current_moisture} >= %{min_moisture}). Sulama kapalı.")
-            return "OFF"
+            return "OFF", forecast_summary, f"Nem yeterli (%{current_moisture})"
 
         # 3. GÜVENLİK KONTROLÜ: Hava Sıcaklığı
         if current_temp >= max_temp:
-            print(f"Hava çok sıcak ({current_temp}°C). Bitki sağlığı için sulama ertelendi.")
-            return "OFF"
+            return "OFF", forecast_summary, f"Hava çok sıcak ({current_temp}°C)"
 
         # 4. AKILLI KONTROL: Hava Durumu (Yağmur Engeli)
-        if rain_block:
-            forecast_summary = await WeatherService.get_irrigation_summary(location)
-            print(forecast_summary.get("rain_3h", 0))
-            if forecast_summary and forecast_summary.get("rain_3h", 0) > 1.0:
-                print(f"Nem düşük ama {location} için yakında yağmur bekleniyor. Su tasarrufu sağlandı.")
-                return "OFF"
+        if rain_block and forecast_summary:
+            # print(forecast_summary.get("rain_3h", 0))
+            rain_amount = forecast_summary.get("rain_3h", 0) > 1.0
+            if rain_amount > 1.0:
+                # print(f"Nem düşük ama {location} için yakında yağmur bekleniyor. Su tasarrufu sağlandı.")
+                # return "OFF"
+                return "OFF", forecast_summary, f"Yakında yağmur bekleniyor ({rain_amount}mm)"
 
         # 5. KARAR: Tüm engeller aşıldıysa sulamayı başlat
-        print(f"Koşullar uygun: Nem düşük, sıcaklık normal ve yağmur yok. Sulama başlatılıyor.")
-        return "ON"
+        return "ON", forecast_summary, "Koşullar sulama için uygun"

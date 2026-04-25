@@ -17,7 +17,15 @@
 #define AIR_VALUE 3200   // Sensör kupkuruyken okunan değer
 #define WATER_VALUE 1100 // Sensör tamamen ıslakken okunan değer
 
-#define RELAY_IN1_PIN 26 // Pompa kontrolü
+// ─── MOSFET (IRFZ44N) Pompa Sürücüsü ───────────────────────────────────────
+// IRFZ44N N-Channel MOSFET — aktif-HIGH (rölenin tersine)
+//   Gate = HIGH  →  MOSFET iletir  →  Pompa ÇALIŞIR
+//   Gate = LOW   →  MOSFET keser   →  Pompa DURUR
+// Bağlantı: ESP32 GPIO26 → 330Ω direnç → Gate
+//            Source → GND (ESP32 ile ortak)
+//            Drain  → Pompa(-) terminaline, Pompa(+) → 12V güç kaynağı
+//            Gate–Source arası 10kΩ pull-down direnç (yüzer kalmasın)
+#define MOSFET_GATE_PIN 26 // IRFZ44N Gate pini — pompa kontrolü
 
 HardwareSerial loraSerial(2);
 LoRa_E22 lora(&loraSerial, LORA_AUX_PIN, LORA_M0_PIN, LORA_M1_PIN,
@@ -147,11 +155,14 @@ void checkIncoming() {
     Serial.print("[LORA] Komut Alindi -> Pompa: ");
     Serial.println(pumpState ? "ACILDI" : "KAPATILDI");
 
-    digitalWrite(RELAY_IN1_PIN, pumpState ? LOW : HIGH);
-    Serial.print("[ROLE] Role: ");
-    Serial.println(pumpState ? "KAPAL (pompa calisiyor)" : "ACIK (pompa durdu)");
+    // IRFZ44N aktif-HIGH: HIGH → MOSFET iletir (pompa çalışır)
+    //                      LOW  → MOSFET keser  (pompa durur)
+    digitalWrite(MOSFET_GATE_PIN, pumpState ? HIGH : LOW);
+    Serial.print("[MOSFET] Gate: ");
+    Serial.println(pumpState ? "HIGH (pompa calisiyor)" : "LOW (pompa durdu)");
 
-    // EMI toparlanma: role/pompa gecis gurultusunun LoRa'yi etkilememesi icin bekle
+    // EMI toparlanma: MOSFET anahtarlama geçişinin LoRa'yı etkilememesi için
+    // bekle
     delay(200);
   }
 
@@ -163,7 +174,8 @@ void setup() {
   delay(500);
   Serial.println("\n--- AGROLOG SENSOR NODE (SIMULASYON) ---");
 
-  // LoRa baslatma: basarisiz olursa retry yap, 5 denemede ESP32'yi yeniden basklat
+  // LoRa baslatma: basarisiz olursa retry yap, 5 denemede ESP32'yi yeniden
+  // basklat
   int loraRetry = 0;
   while (!initLoRa()) {
     loraRetry++;
@@ -171,15 +183,16 @@ void setup() {
     Serial.println(loraRetry);
     delay(3000);
     if (loraRetry >= 5) {
-      Serial.println("[HATA] LoRa baslatılamadi, ESP32 yeniden baslatiliyor...");
+      Serial.println(
+          "[HATA] LoRa baslatılamadi, ESP32 yeniden baslatiliyor...");
       ESP.restart();
     }
   }
 
-  // EKLENECEK — setup() içine
-  // KRITIK: pinMode'dan ONCE HIGH yaz — yoksa röle başlatmada kısa süre açılır
-  digitalWrite(RELAY_IN1_PIN, HIGH);
-  pinMode(RELAY_IN1_PIN, OUTPUT);
+  // KRİTİK: pinMode'dan ÖNCE LOW yaz — IRFZ44N başlangıçta kapalı kalmalı
+  // (Rölenin tersine: IRFZ44N için güvenli başlangıç = LOW = pompa kapalı)
+  digitalWrite(MOSFET_GATE_PIN, LOW);
+  pinMode(MOSFET_GATE_PIN, OUTPUT);
 
   sendSensorData();
   lastSendTime = millis();
