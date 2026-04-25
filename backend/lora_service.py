@@ -133,19 +133,30 @@ class LoRaGateway:
             node_id_b, moisture, raw_adc, pump_on = struct.unpack(SENSOR_FMT, raw)
             # NUL karakterlerini temizleyerek decode et
             node_id = node_id_b.split(b'\x00')[0].decode("utf-8", errors="ignore")
-            
+
             # Veri çok saçma gelmişse (kayma varsa) reddet
             if not node_id or len(node_id) < 3:
                 raise struct.error("Geçersiz Node ID")
-                
+
+            # Sayısal aralık doğrulaması — 1 byte kaymasından kaynaklanan saçma değerleri reddet
+            if not (0.0 <= moisture <= 100.0):
+                log.warning(f"[PAKET RED] Geçersiz nem değeri: {moisture:.2f} (beklenen: 0-100). Paket atıldı.")
+                self.ser.reset_input_buffer()
+                return None
+
+            if not (0 <= raw_adc <= 4095):
+                log.warning(f"[PAKET RED] Geçersiz ADC değeri: {raw_adc} (beklenen: 0-4095). Paket atıldı.")
+                self.ser.reset_input_buffer()
+                return None
+
             return {
-                "lora_id":      node_id,
-                "value":        round(moisture, 2),
-                "raw_adc":      raw_adc,
-                "pump_on":      bool(pump_on)
+                "lora_id":  node_id,
+                "value":    round(moisture, 2),
+                "raw_adc":  raw_adc,
+                "pump_on":  bool(pump_on)
             }
         except Exception as e:
-            # Kayma olduğunda tamponu boşaltıp bir sonraki paketi bekle
+            log.warning(f"[PAKET RED] Struct parse hatası: {e}. Buffer temizleniyor.")
             self.ser.reset_input_buffer()
             return None
 
@@ -156,6 +167,7 @@ class LoRaGateway:
             return
 
         self._wait_aux_high()
+        log.info(f"[DIAG] send_command öncesi buffer: {self.ser.in_waiting} byte")
         payload = struct.pack(CMD_FMT,
                               node_id.encode("utf-8").ljust(20, b"\x00"),
                               1 if pump_on else 0)
@@ -164,8 +176,9 @@ class LoRaGateway:
             self.ser.flush() # Verinin tamamen gittiğinden emin ol
         log.info(f"Komut gönderildi -> {node_id} | Pompa: {'AÇ' if pump_on else 'KAPAT'}")
         
-        # KRİTİK: Komuttan sonra girişte kalan çöp verileri temizle
-        time.sleep(0.1) 
+        # KRİTİK: LoRa iletim tamamlanana kadar bekle, sonra temizle
+        time.sleep(0.5)  # 0.1 → 0.5 sn: LoRa'nın TX→RX moduna geçişini bekle
+        log.info(f"[DIAG] send_command sonrası buffer: {self.ser.in_waiting} byte")
         self.ser.reset_input_buffer()
 
     # ── MQTT ─────────────────────────────────────────────────
@@ -212,13 +225,23 @@ class LoRaGateway:
         log.info("ESP32 node'larından veri bekleniyor...")
 
         try:
+            last_diag_time = time.time()
             while self._running:
+                # Her 30 saniyede bir diagnostic log — buffer'da ne kadar byte var?
+                if time.time() - last_diag_time > 30:
+                    log.info(f"[DIAG] UART buffer: {self.ser.in_waiting} byte bekliyor (SENSOR_SIZE={SENSOR_SIZE})")
+                    last_diag_time = time.time()
+
                 if self.ser.in_waiting >= SENSOR_SIZE:
                     packet = self._read_packet()
                     if packet:
                         payload_str = json.dumps(packet)
                         self.mqtt_client.publish(Config.TOPIC_SENSOR, payload_str)
                         log.info(f"ESP32 → Backend: {payload_str}")
+                    elif self.ser.in_waiting > 0:
+                        # Paket parse edilemedi — buffer'da gürültü var, temizle
+                        log.warning(f"[DIAG] Paket parse hatası, buffer temizleniyor ({self.ser.in_waiting} byte)")
+                        self.ser.reset_input_buffer()
                 time.sleep(0.05)
 
         except KeyboardInterrupt:
