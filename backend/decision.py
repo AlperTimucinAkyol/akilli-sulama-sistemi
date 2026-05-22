@@ -67,6 +67,4 @@ class DecisionLogic:
         # 5. KARAR: Tüm engeller aşıldıysa sulamayı başlat
 
         return "ON", forecast_summary, "Koşullar sulama için uygun"
-=======
-        return "ON", forecast_summary, "Koşullar sulama için uygun"
->>>>>>> ef0b2e5 (update decision and mqtt logic)
+
