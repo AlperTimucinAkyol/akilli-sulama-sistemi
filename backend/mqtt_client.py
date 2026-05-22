@@ -74,13 +74,13 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
         lora_id = payload.get("lora_id")
         moisture_value = float(payload.get("value", 0))
-        # ESP32'den 'temp' gelmiyorsa varsayılan 25 derece kabul et
-        temp_value = float(payload.get("temp", 25.0)) 
+        # ESP32 sıcaklık göndermez; bu değer yalnızca OpenWeather başarısız olursa fallback olarak kullanılır
+        esp32_temp_fallback = float(payload.get("temp", 25.0))
     except Exception as e:
         logger.error(f"MQTT payload parse hatası: {e}")
         return
 
-    logger.info(f"Veri Geldi -> Node: {lora_id}, Nem: %{moisture_value}, Sıcaklık: {temp_value}°C")
+    logger.info(f"Veri Geldi -> Node: {lora_id}, Nem: %{moisture_value} (Sıcaklık: OpenWeather'dan alınacak)")
 
     # Karar değişkenini varsayılan olarak güvenli moda (KAPALI) alalım
     final_pump_status = False
@@ -89,7 +89,7 @@ def on_message(client, userdata, msg):
     db = SessionLocal()
     try:
         # Senkron MQTT callback'i içinde ASENKRON fonksiyonu çalıştırıyoruz
-        final_pump_status = asyncio.run(_process_message_async(lora_id, moisture_value, temp_value, db))
+        final_pump_status = asyncio.run(_process_message_async(lora_id, moisture_value, esp32_temp_fallback, db))
 
     except (OperationalError, SQLAlchemyError) as e:
         db.rollback()

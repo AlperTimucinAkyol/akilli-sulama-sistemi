@@ -33,14 +33,34 @@ class DecisionLogic:
             rain_block = rule.rain_block
 
         forecast_summary = await WeatherService.get_irrigation_summary(location)
+<<<<<<< HEAD
         
+=======
+
+        # OpenWeather'dan gelen sıcaklığı önceliklendir; yoksa ESP32 değerine fallback yap
+        if forecast_summary and "temp" in forecast_summary:
+            effective_temp = forecast_summary["temp"]
+            temp_source = "OpenWeather"
+        else:
+            effective_temp = current_temp
+            temp_source = "ESP32 (fallback)"
+
+        print(f"Sıcaklık kaynağı: {temp_source} → {effective_temp}°C")
+
+>>>>>>> ef0b2e5 (update decision and mqtt logic)
         # 2. KRİTİK KONTROL: Toprak Nemi
         if current_moisture >= min_moisture:
             return "OFF", forecast_summary, f"Nem yeterli (%{current_moisture})"
 
+<<<<<<< HEAD
         # 3. GÜVENLİK KONTROLÜ: Hava Sıcaklığı
         if current_temp >= max_temp:
             return "OFF", forecast_summary, f"Hava çok sıcak ({current_temp}°C)"
+=======
+        # 3. GÜVENLİK KONTROLÜ: Hava Sıcaklığı (OpenWeather verileri)
+        if effective_temp >= max_temp:
+            return "OFF", forecast_summary, f"Hava çok sıcak ({effective_temp}°C) [{temp_source}]"
+>>>>>>> ef0b2e5 (update decision and mqtt logic)
 
         # 4. AKILLI KONTROL: Hava Durumu (Yağmur Engeli)
         if rain_block and forecast_summary:
@@ -52,4 +72,8 @@ class DecisionLogic:
                 return "OFF", forecast_summary, f"Yakında yağmur bekleniyor ({rain_amount}mm)"
 
         # 5. KARAR: Tüm engeller aşıldıysa sulamayı başlat
+<<<<<<< HEAD
         return "ON", forecast_summary, "Koşullar sulama için uygun"
+=======
+        return "ON", forecast_summary, "Koşullar sulama için uygun"
+>>>>>>> ef0b2e5 (update decision and mqtt logic)
