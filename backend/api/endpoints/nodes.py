@@ -10,7 +10,7 @@ router = APIRouter()
 @router.post("/add")
 async def add_node(
     field_id: int = Form(...),
-    lora_id: str = Form(...), # cihazın kimliği
+    lora_id: str = Form(...),
     db: Session = Depends(get_db),
     current_user = Depends(auth_utils.get_current_user)
 ):
@@ -18,15 +18,15 @@ async def add_node(
     if not field:
         raise HTTPException(status_code=404, detail="Tarla bulunamadı.")
     
-    existing_node = db.query(Node).filter(Node.lora_id == lora_id).first()
-    if existing_node:
-        raise HTTPException(status_code=400, detail="Bu LoRa ID zaten sisteme kayıtlı.")
+    existing = db.query(Node).filter(Node.lora_id == lora_id, Node.field_id == field_id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Bu isimde bir cihaz zaten bu tarlaya kayıtlı.")
 
     try:
         new_node = Node(
             field_id=field_id,
             lora_id=lora_id,
-            status="Offline" # İlk eklendiğinde offline başlar
+            status="Online" # İlk eklendiğinde offline başlar
         )
         db.add(new_node)
         db.flush()
@@ -38,7 +38,7 @@ async def add_node(
         db.add(new_sensor)
         
         db.commit()
-        return {"message": f"{lora_id} kimlikli cihaz ve sensör başarıyla tanımlandı."}
+        return {"message": f"'{lora_id}' cihazı ve toprak nemi sensörü başarıyla eklendi."}
 
     except Exception as e:
         db.rollback()

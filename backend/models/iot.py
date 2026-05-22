@@ -13,7 +13,7 @@ class Node(Base):
     lora_id = Column(String(255), nullable=False)
     status = Column(String(255))
     last_seen = Column(String(255)) # timestamp olabilir
-    created_at = Column(Date)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # İlişkiler
     field = relationship("Field", back_populates="nodes")
@@ -27,7 +27,7 @@ class Sensor(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     node_id = Column(Integer, ForeignKey("nodes.id"))
     sensor_type = Column(String(255))
-    created_at = Column(Date)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # İlişkiler
     node = relationship("Node", back_populates="sensors")

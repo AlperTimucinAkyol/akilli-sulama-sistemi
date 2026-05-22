@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float, DateTime
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from database import Base
 
 class Field(Base):
@@ -11,7 +12,7 @@ class Field(Base):
     location = Column(String(255))
     area_m2 = Column(Float)
     crop_type = Column(String(255))
-    created_at = Column(Date)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # İlişkiler
     owner = relationship("User", back_populates="fields")

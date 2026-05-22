@@ -43,15 +43,31 @@
                         <th>Cihaz</th>
                         <th>Mod</th>
                         <th>Nem</th>
-                        <th>Süre</th>
                         <th>Durum</th>
                         <th>Not</th>
                     </tr>
                 </thead>
                 <tbody id="logs-table-body">
-                    </tbody>
+                </tbody>
             </table>
         </div>
+    </div>
+
+    <!-- Sayfalama -->
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0">Sayfa başı:</label>
+            <select id="page-size" class="form-select form-select-sm" style="width:auto;">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            <span class="text-muted small ms-2" id="page-info">--</span>
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0" id="pagination-controls"></ul>
+        </nav>
     </div>
 </div>
 {% endblock %}
@@ -63,97 +79,173 @@
             window.location.href = "/login";
         }
         
+        // ============ STATE ============
         let allLogs = [];
+        let filteredLogs = [];
+        let currentPage = 1;
+        let pageSize = 10;
 
+        // ============ FETCH ============
         function fetchLogs() {
             $.ajax({
                 url: '/api/irrigation/logs',
                 method: "GET",
                 success: function(data) {
                     allLogs = data;
-                    console.log(allLogs);
-                    renderLogsTable(allLogs);
+                    filteredLogs = data;
+                    currentPage = 1;
+                    renderLogsTable();
                 },
                 error: function(xhr) {
                     console.error("Kayıtlar yüklenemedi:", xhr);
                 }
-            })
+            });
         }
 
-        function renderLogsTable(logs) {
+        // ============ RENDER TABLE ============
+        function renderLogsTable() {
             const tableBody = $("#logs-table-body");
             tableBody.empty();
 
-            if (logs.length === 0) {
-                tableBody.append(
-                    `<tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
-                            Sulama kaydı bulunamadı.
-                        </td>
-                    </tr>`
-                );
-            } else {
-                logs.forEach(log => {
-                    const actionBadge = log.action ? 'bg-success' : "bg-danger"; // true sulama yapıldı
-                    const modeBadge = log.mode ? "bg-info" : "bg-secondary"; // true otomatik
+            const total = filteredLogs.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
 
-                    const actionText = log.action ? 'Sulama yapıldı' : "Sulama yapılmadı"
-                    const modeText = log.action ? 'Otomatik' : "Manuel"
-
-                    const date = new Date(log.timestamp);
-
-                    const formattedDate = date.toLocaleString('tr-TR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-
-                    tableBody.append(`
-                        <tr>
-                            <td>${formattedDate}</td>
-                            <td>${log.field_name}</td>
-                            <td><code class="text-primary">${log.lora_id}</code></td>
-                            <td><span class="badge ${modeBadge}">${modeText}</span></td>
-                            <td><b class="text-success">%${log.soil_moisture}</b></td>
-                            <td>${log.duration_min} dk</td>
-                            <td><span class="badge ${actionBadge}">${actionText}</span></td>
-                            <td class="small text-muted">${log.decision_note || '-'}</td>
-                        </tr>
-                    `)
-                })
+            if (total === 0) {
+                tableBody.append(`
+                    <tr><td colspan="8" class="text-center py-5 text-muted">
+                        Sulama kaydı bulunamadı.
+                    </td></tr>
+                `);
+                $("#page-info").text("0 kayıt");
+                $("#pagination-controls").empty();
+                return;
             }
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = Math.min(startIdx + pageSize, total);
+            const pageLogs = filteredLogs.slice(startIdx, endIdx);
+
+            pageLogs.forEach(log => {
+                const actionBadge = log.action ? 'bg-success' : "bg-danger";
+                const modeBadge = log.mode ? "bg-info" : "bg-secondary";
+                const actionText = log.action ? 'Sulama yapıldı' : "Sulama yapılmadı";
+                const modeText = log.mode ? 'Otomatik' : "Manuel";
+
+                const date = new Date(log.timestamp);
+                const formattedDate = date.toLocaleString('tr-TR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                tableBody.append(`
+                    <tr>
+                        <td>${formattedDate}</td>
+                        <td>${log.field_name}</td>
+                        <td><code class="text-primary">${log.lora_id}</code></td>
+                        <td><span class="badge ${modeBadge}">${modeText}</span></td>
+                        <td><b class="text-success">%${log.soil_moisture}</b></td>
+                        <td><span class="badge ${actionBadge}">${actionText}</span></td>
+                        <td class="small text-muted">${log.decision_note || '-'}</td>
+                    </tr>
+                `);
+            });
+
+            $("#page-info").text(`${startIdx + 1}-${endIdx} / ${total} kayıt`);
+            renderPagination(totalPages);
         }
 
-        fetchLogs();
+        // ============ PAGINATION ============
+        function renderPagination(totalPages) {
+            const pag = $("#pagination-controls");
+            pag.empty();
 
+            // Onceki
+            pag.append(`
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage - 1}">&laquo;</a>
+                </li>
+            `);
+
+            // Sayfa numaralari (max 5)
+            let start = Math.max(1, currentPage - 2);
+            let end = Math.min(totalPages, start + 4);
+            start = Math.max(1, end - 4);
+
+            if (start > 1) {
+                pag.append(`<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`);
+                if (start > 2) pag.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
+            }
+
+            for (let i = start; i <= end; i++) {
+                pag.append(`
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" data-page="${i}">${i}</a>
+                    </li>
+                `);
+            }
+
+            if (end < totalPages) {
+                if (end < totalPages - 1) pag.append(`<li class="page-item disabled"><span class="page-link">...</span></li>`);
+                pag.append(`<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`);
+            }
+
+            // Sonraki
+            pag.append(`
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage + 1}">&raquo;</a>
+                </li>
+            `);
+
+            // Tikla -> sayfa degistir
+            pag.find("a.page-link").on("click", function(e) {
+                e.preventDefault();
+                const p = parseInt($(this).data("page"));
+                if (!isNaN(p) && p >= 1 && p <= totalPages) {
+                    currentPage = p;
+                    renderLogsTable();
+                }
+            });
+        }
+
+        // ============ EVENTS ============
+        $("#page-size").on("change", function() {
+            pageSize = parseInt($(this).val());
+            currentPage = 1;
+            renderLogsTable();
+        });
 
         $("#filter-logs").on('click', function() {
             const searchText = $("#log-search").val().toLowerCase();
             const selectedRadioValue = $('input[name="radioDefault"]:checked').val();
-            const radioValueFormatted = selectedRadioValue === "true" ? true : false;
-            let filtered;
 
             if (selectedRadioValue === "all") {
-                filtered = allLogs.filter(log =>
+                filteredLogs = allLogs.filter(log =>
                     log.field_name.toLowerCase().includes(searchText) ||
                     log.lora_id.toLowerCase().includes(searchText)
                 );
             } else {
-                filtered = allLogs.filter(log =>
+                const radioValueFormatted = selectedRadioValue === "true";
+                filteredLogs = allLogs.filter(log =>
                     (log.field_name.toLowerCase().includes(searchText) ||
-                    log.lora_id.toLowerCase().includes(searchText)) && (log.action === radioValueFormatted)
+                     log.lora_id.toLowerCase().includes(searchText)) &&
+                    (log.action === radioValueFormatted)
                 );
             }
 
-
-            renderLogsTable(filtered);
-        })
+            currentPage = 1;
+            renderLogsTable();
+        });
 
         $("#refresh-logs").on("click", function() {
             fetchLogs();
-        })
-    })
+        });
+
+        // ============ INIT ============
+        fetchLogs();
+    });
 </script>
 {% endblock %}

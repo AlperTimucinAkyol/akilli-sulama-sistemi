@@ -13,13 +13,15 @@
             </div>
         </div>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary btn-sm" id="btn-rule-modal" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+            <button class="btn btn-outline-primary btn-sm" id="btn-rule-modal" data-bs-toggle="modal"
+                data-bs-target="#addRuleModal">
                 <i class="bi bi-gear-wide-connected me-1"></i> <span id="rule-btn-text">Sulama Kuralı Ekle</span>
             </button>
             <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#addNodeModal">
                 <i class="bi bi-plus-circle me-1"></i> Cihaz Ekle
             </button>
-            <span class="badge bg-success-subtle text-success border border-success px-3 py-2" id="field-status">Sistem Çevrimiçi</span>
+            <span class="badge bg-success-subtle text-success border border-success px-3 py-2" id="field-status">Sistem
+                Çevrimiçi</span>
         </div>
     </div>
 
@@ -50,7 +52,8 @@
             <div class="card shadow-sm border-0 p-4 mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="fw-bold mb-0">Son 24 Saatlik Nem Analizi</h5>
-                    <button class="btn btn-sm btn-light"><i class="bi bi-arrow-clockwise"></i></button>
+                    <button id="refreshGraph" class="btn btn-sm btn-light"><i
+                            class="bi bi-arrow-clockwise"></i></button>
                 </div>
                 <div style="height: 300px;">
                     <canvas id="fieldHistoryChart"></canvas>
@@ -59,24 +62,6 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card shadow-sm border-0 mb-4 bg-dark text-white">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-bold mb-0"><i class="bi bi-droplet-half me-2"></i>Sulama</h5>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="autoModeSwitch" checked>
-                            <label class="form-check-label small" for="autoModeSwitch">Otomatik Mod</label>
-                        </div>
-                    </div>
-                    <p class="small opacity-75">Toprak nemi kritik seviyenin altına düştüğünde sistem otomatik tetiklenir.</p>
-                    <div class="d-grid gap-2">
-                        <button id="pumpActionBtn" class="btn btn-success py-3 fw-bold">
-                            <i class="bi bi-power me-2"></i>Sulamayı Başlat
-                        </button>
-                    </div>
-                </div>
-            </div>
-
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white py-3">
                     <h6 class="fw-bold mb-0 text-dark">Bağlı Cihazlar (Nodes)</h6>
@@ -95,20 +80,25 @@
             <form id="add-node-form">
                 <input type="hidden" name="field_id" value="{{ field_id }}">
                 <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title fw-bold">Yeni Cihaz Tanımla</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-cpu me-2"></i>Yeni Cihaz Ekle</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3 text-start">
-                        <label class="form-label fw-bold small text-dark">LoRa ID / Cihaz Kimliği</label>
-                        <input type="text" name="lora_id" class="form-control" placeholder="Örn: LR-TR-61-01" required>
+                        <label class="form-label fw-bold small text-dark">Cihaz İsmi</label>
+                        <input type="text" name="lora_id" class="form-control" placeholder="Örn: esp32_tarla_1" required>
                         <div class="form-text mt-2">
-                            ESP32 cihazınızın üzerinde yazan benzersiz LoRa adresini giriniz.
+                            ESP32 cihazınızın üzerinde yazan benzersiz cihaz ismini giriniz.
                         </div>
+                    </div>
+                    <div class="alert alert-success py-2 px-3 d-flex align-items-center gap-2 small mb-0">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Toprak nemi sensörü <strong>otomatik olarak</strong> eklenecektir.</span>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="submit" id="createSensorBtn" class="btn btn-dark w-100 fw-bold">Cihazı Tarlaya Bağla</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="createSensorBtn" class="btn btn-dark px-4 fw-bold">Cihazı Ekle</button>
                 </div>
             </form>
         </div>
@@ -120,7 +110,7 @@
         <div class="modal-content border-0 shadow">
             <form id="add-rule-form">
                 <input type="hidden" name="field_id" value="{{ field_id }}">
-                
+
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title fw-bold">
                         <i class="bi bi-gear-wide-connected me-2"></i>
@@ -128,17 +118,19 @@
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                
+
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label fw-bold small text-dark">Kural İsmi</label>
-                        <input type="text" name="name" class="form-control" placeholder="Örn: Hassas Yaz Sulaması" required>
+                        <input type="text" name="name" class="form-control" placeholder="Örn: Hassas Yaz Sulaması"
+                            required>
                     </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label fw-bold small text-danger">Min. Toprak Nemi (%)</label>
-                            <input type="number" name="min_soil_moisture" class="form-control" placeholder="30" min="0" max="100" required>
+                            <input type="number" name="min_soil_moisture" class="form-control" placeholder="30" min="0"
+                                max="100" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label fw-bold small text-warning">Maks. Sıcaklık (°C)</label>
@@ -156,13 +148,15 @@
 
                     <div class="form-check form-switch mb-2">
                         <input class="form-check-input" type="checkbox" name="rain_block" id="rainBlockSwitch" checked>
-                        <label class="form-check-label small fw-bold text-dark" for="rainBlockSwitch">Yağmur Varsa Sulamayı İptal Et</label>
+                        <label class="form-check-label small fw-bold text-dark" for="rainBlockSwitch">Yağmur Varsa
+                            Sulamayı İptal Et</label>
                     </div>
                 </div>
-                
+
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
-                    <button type="submit" id="btn-rule-submit" class="btn btn-primary px-4 fw-bold">Kuralı Kaydet</button>
+                    <button type="submit" id="btn-rule-submit" class="btn btn-primary px-4 fw-bold">Kuralı
+                        Kaydet</button>
                 </div>
             </form>
         </div>
@@ -173,96 +167,99 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let existingRuleId = null; // Kural varsa ID'sini burada tutacağız
-const fieldId = "{{ field_id }}";
+    let existingRuleId = null;
+    const fieldId = "{{ field_id }}";
 
-$(document).ready(function() {
-    checkExistingRule();
-    loadFieldDetails();
-    loadMoistureHistory();
-
-    $('#add-node-form').on('submit', function(e) {
-        e.preventDefault();
-        const btn = $(this).find('#createSensorBtn');
-        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
-
-        $.ajax({
-            url: '/api/nodes/add',
-            method: 'POST',
-            data: $(this).serialize(),
-            success: function(res) {
-                $('#addNodeModal').modal('hide');
-                Swal.fire("Başarılı", res.message, "success");
-                loadFieldDetails();
-                $('#add-node-form')[0].reset();
-            },
-            error: function(xhr) {
-                Swal.fire("Hata", xhr.responseJSON.detail, "error");
-            },
-            complete: function() { btn.prop('disabled', false).text('Cihazı Tarlaya Bağla'); }
-        });
-    });
-
-    $('#refreshHistory').on('click', function() {
+    $(document).ready(function () {
+        checkExistingRule();
+        loadFieldDetails();
         loadMoistureHistory();
-    })
 
-    $('#add-rule-form').on('submit', function(e) {
-        e.preventDefault();
-        
-        const payload = {
-            field_id: parseInt($('input[name="field_id"]').val()),
-            name: $('input[name="name"]').val(),
-            min_soil_moisture: parseFloat($('input[name="min_soil_moisture"]').val()),
-            max_temperature: parseFloat($('input[name="max_temperature"]').val()),
-            duration_min: parseInt($('input[name="duration_min"]').val()),
-            rain_block: $('#rainBlockSwitch').is(':checked'),
-        };
-    
-        // Eğer ID varsa güncelleme yap, yoksa yeni kural oluştur
-        const url = existingRuleId ? `/api/irrigation/rules/${existingRuleId}` : '/api/irrigation/rules';
-        const method = existingRuleId ? 'PUT' : 'POST';
-    
-        $.ajax({
-            url: url,
-            method: method,
-            contentType: 'application/json',
-            data: JSON.stringify(payload),
-            success: function(response) {
-                Swal.fire('Başarılı!', 'Kural güncellendi.', 'success');
-                $('#addRuleModal').modal('hide');
-                checkExistingRule(); // Durumu tekrar kontrol et ve UI'ı güncelle
-            }
+        $('#add-node-form').on('submit', function (e) {
+            e.preventDefault();
+            const btn = $(this).find('#createSensorBtn');
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+            $.ajax({
+                url: '/api/nodes/add',
+                method: 'POST',
+                data: $(this).serialize(),
+                success: function (res) {
+                    $('#addNodeModal').modal('hide');
+                    Swal.fire("Başarılı", res.message, "success");
+                    loadFieldDetails();
+                    $('#add-node-form')[0].reset();
+                },
+                error: function (xhr) {
+                    Swal.fire("Hata", xhr.responseJSON?.detail || "Bir hata oluştu.", "error");
+                },
+                complete: function () { btn.prop('disabled', false).html('Cihazı Ekle'); }
+            });
         });
+
+        $('#refreshHistory').on('click', function () {
+            loadMoistureHistory();
+        })
+
+        $('#add-rule-form').on('submit', function (e) {
+            e.preventDefault();
+
+            const payload = {
+                field_id: parseInt($('input[name="field_id"]').val()),
+                name: $('input[name="name"]').val(),
+                min_soil_moisture: parseFloat($('input[name="min_soil_moisture"]').val()),
+                max_temperature: parseFloat($('input[name="max_temperature"]').val()),
+                duration_min: parseInt($('input[name="duration_min"]').val()),
+                rain_block: $('#rainBlockSwitch').is(':checked'),
+            };
+
+            const url = existingRuleId ? `/api/irrigation/rules/${existingRuleId}` : '/api/irrigation/rules';
+            const method = existingRuleId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(payload),
+                success: function (response) {
+                    Swal.fire('Başarılı!', 'Kural güncellendi.', 'success');
+                    $('#addRuleModal').modal('hide');
+                    checkExistingRule();
+                }
+            });
+        });
+
+        $('#refreshGraph').on('click', function () {
+            loadMoistureHistory();
+        })
     });
-});
 
-function loadFieldDetails() {
-    $.ajax({
-        url: `/api/fields/${fieldId}/detail`,
-        method: 'GET',
-        success: function(data) {
-            $('#field-title').text(data.field_name);
-            $('#field-location-text').text(data.location);
+    function loadFieldDetails() {
+        $.ajax({
+            url: `/api/fields/${fieldId}/detail`,
+            method: 'GET',
+            success: function (data) {
+                $('#field-title').text(data.field_name);
+                $('#field-location-text').text(data.location);
 
-            const nodeList = $('#node-list');
-            nodeList.empty();
+                const nodeList = $('#node-list');
+                nodeList.empty();
 
-            let lastFoundMoisture = null;
+                let lastFoundMoisture = null;
 
-            if (!data.nodes || data.nodes.length === 0) {
-                nodeList.append('<div class="p-4 text-center text-muted small">Bağlı cihaz bulunamadı.</div>');
-                $('#last-moisture-val').text("N/A");
-                $('#last-update-time').text("Cihaz yok");
-            } else {
-                data.nodes.forEach(node => {
-                    const moistureSensor = node.sensors.find(s => s.type === 'soil_moisture');
-                    const moistureVal = moistureSensor ? moistureSensor.value : "N/A";
+                if (!data.nodes || data.nodes.length === 0) {
+                    nodeList.append('<div class="p-4 text-center text-muted small">Bağlı cihaz bulunamadı.</div>');
+                    $('#last-moisture-val').text("N/A");
+                    $('#last-update-time').text("Cihaz yok");
+                } else {
+                    data.nodes.forEach(node => {
+                        const moistureSensor = node.sensors.find(s => s.type === 'soil_moisture');
+                        const moistureVal = moistureSensor ? moistureSensor.value : "N/A";
 
-                    const statusClass = node.status === 'Online' ? 'bg-success' : 'bg-secondary';
-                    const statusText = node.status || 'Offline';
+                        const statusClass = node.status === 'Online' ? 'bg-success' : 'bg-secondary';
+                        const statusText = node.status || 'Offline';
 
-                    nodeList.append(`
+                        nodeList.append(`
                         <div class="list-group-item p-3 border-0 border-bottom">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="fw-bold small text-dark">
@@ -276,108 +273,105 @@ function loadFieldDetails() {
                         </div>
                     `);
 
-                    if (moistureVal !== "N/A") {
-                        lastFoundMoisture = moistureVal;
+                        if (moistureVal !== "N/A") {
+                            lastFoundMoisture = moistureVal;
+                        }
+                    });
+
+                    if (lastFoundMoisture !== null) {
+                        $('#last-moisture-val').text("%" + lastFoundMoisture);
+                        $('#last-update-time').text("Anlık Veri");
+                    } else {
+                        $('#last-moisture-val').text("%--");
+                        $('#last-update-time').text("Veri bekleniyor");
+                    }
+                }
+
+                fetchWeatherForDetail(data.location);
+            }
+        });
+    }
+
+    function fetchWeatherForDetail(location) {
+        $.ajax({
+            url: '/api/weather/current',
+            method: 'GET',
+            data: { location: location },
+            success: function (response) {
+                $('#weather-temp').text(response.temp + "°C");
+                $('#weather-desc').text(response.condition);
+
+                const popPercent = Math.round(response.pop * 100);
+                $('#weather-pop-val').text("%" + popPercent);
+            },
+            error: function () {
+                $('#weather-pop-val').text("%--");
+            }
+        });
+    }
+
+    function loadMoistureHistory() {
+        $.ajax({
+            url: `/api/fields/${fieldId}/history`,
+            method: 'GET',
+            success: function (data) {
+
+                const ctx = document.getElementById('fieldHistoryChart').getContext('2d');
+                if (window.myFieldChart) window.myFieldChart.destroy();
+
+                window.myFieldChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Toprak Nemi (%)',
+                            data: data.values,
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { min: 0, max: 100 } }
                     }
                 });
+            }
+        });
+    }
 
-                if (lastFoundMoisture !== null) {
-                    $('#last-moisture-val').text("%" + lastFoundMoisture);
-                    $('#last-update-time').text("Anlık Veri");
+    function checkExistingRule() {
+        $.ajax({
+            url: `/api/irrigation/rules/field/${fieldId}`,
+            method: 'GET',
+            success: function (rule) {
+                if (rule) {
+                    existingRuleId = rule.id;
+
+                    $('#rule-btn-text').text('Sulama Kuralını Düzelt');
+                    $('#rule-modal-title').text('Sulama Kuralını Düzenle');
+                    $('#btn-rule-submit').text('Değişiklikleri Kaydet');
+
+                    $('input[name="name"]').val(rule.name);
+                    $('input[name="min_soil_moisture"]').val(rule.min_soil_moisture);
+                    $('input[name="max_temperature"]').val(rule.max_temperature);
+                    $('input[name="duration_min"]').val(rule.duration_min);
+                    $('#rainBlockSwitch').prop('checked', rule.rain_block);
+                }
+            },
+            error: function (xhr) {
+                if (xhr.status === 404) {
+                    console.log("Kural tanımlanmamış, temiz form hazır.");
+                    existingRuleId = null;
+                    $('#rule-btn-text').text('Sulama Kuralı Ekle');
                 } else {
-                    $('#last-moisture-val').text("%--");
-                    $('#last-update-time').text("Veri bekleniyor");
+                    console.error("Beklenmedik bir hata oluştu:", xhr.statusText);
                 }
             }
-
-            fetchWeatherForDetail(data.location);
-        }
-    });
-}
-
-function fetchWeatherForDetail(location) {
-    $.ajax({
-        url: '/api/weather/current',
-        method: 'GET',
-        data: { location: location },
-        success: function(response) {
-            $('#weather-temp').text(response.temp + "°C");
-            $('#weather-desc').text(response.condition);
-
-            const popPercent = Math.round(response.pop * 100);
-            $('#weather-pop-val').text("%" + popPercent);
-        },
-        error: function() {
-            $('#weather-pop-val').text("%--");
-        }
-    });
-}
-
-function loadMoistureHistory() {
-    $.ajax({
-        url: `/api/fields/${fieldId}/history`,
-        method: 'GET',
-        success: function(data) {
-                
-            const ctx = document.getElementById('fieldHistoryChart').getContext('2d');
-            if (window.myFieldChart) window.myFieldChart.destroy();
-
-            window.myFieldChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Toprak Nemi (%)',
-                        data: data.values,
-                        borderColor: '#198754',
-                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false,
-                    scales: { y: { min: 0, max: 100 } }
-                }
-            });
-        }
-    });
-}
-
-function checkExistingRule() {
-    $.ajax({
-        url: `/api/irrigation/rules/field/${fieldId}`, // Bu tarlanın aktif kuralını getiren endpoint
-        method: 'GET',
-        success: function(rule) {
-            if (rule) {
-                existingRuleId = rule.id;
-
-                $('#rule-btn-text').text('Sulama Kuralını Düzelt');
-                $('#rule-modal-title').text('Sulama Kuralını Düzenle');
-                $('#btn-rule-submit').text('Değişiklikleri Kaydet');
-                
-                // Formu doldur
-                $('input[name="name"]').val(rule.name);
-                $('input[name="min_soil_moisture"]').val(rule.min_soil_moisture);
-                $('input[name="max_temperature"]').val(rule.max_temperature);
-                $('input[name="duration_min"]').val(rule.duration_min);
-                $('#rainBlockSwitch').prop('checked', rule.rain_block);
-            }
-        },
-        error: function(xhr) {
-            if (xhr.status === 404) {
-                // Kural bulunamadı -> Ekleme Modu (Bu bir hata değil, durumdur)
-                console.log("Kural tanımlanmamış, temiz form hazır.");
-                existingRuleId = null;
-                $('#rule-btn-text').text('Sulama Kuralı Ekle');
-            } else {
-                // Gerçek bir bağlantı hatası varsa burası çalışır
-                console.error("Beklenmedik bir hata oluştu:", xhr.statusText);
-            }
-        }
-    });
-}
+        });
+    }
 
 </script>
 {% endblock %}
