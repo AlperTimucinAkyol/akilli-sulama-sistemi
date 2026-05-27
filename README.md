@@ -375,13 +375,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## 🤝 Katkıda Bulunma / Contributing
-
-Katkılar memnuniyetle karşılanır! Lütfen [CONTRIBUTING.md](CONTRIBUTING.md) dosyasını inceleyin.  
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
 <div align="center">
 
 *Karadeniz Teknik Üniversitesi · Of Teknoloji Fakültesi · Yazılım Mühendisliği · 2026*
